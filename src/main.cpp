@@ -1,23 +1,26 @@
 #define GLFW_INCLUDE_VULKAN
+
 #define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
 #define GLFW_EXPOSE_NATIVE_WIN32
+
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
+#undef max
+
 #include <iostream>
 #include <stdexcept>
+#include <algorithm>
 #include <vector>
 #include <cstring>
 #include <cstdlib>
 #include <cstdint>
 #include <limits>
-#include <algorithm>
 #include <optional>
 #include <set>
 
-const uint32_t  WIDTH = 800;
-const uint32_t  HEIGHT = 600;
+const uint32_t WIDTH = 800;
+const uint32_t HEIGHT = 600;
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -54,8 +57,8 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 
 // Struct to hold queue family indices
 struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
+    std::optional<uint32_t> graphicsFamily{};
+    std::optional<uint32_t> presentFamily{};
 
 	bool isComplete() {
 		return graphicsFamily.has_value() && presentFamily.has_value();
@@ -63,9 +66,9 @@ struct QueueFamilyIndices {
 };
 
 struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+    VkSurfaceCapabilitiesKHR capabilities{};
+    std::vector<VkSurfaceFormatKHR> formats{};
+    std::vector<VkPresentModeKHR> presentModes{};
 };
 
 class HelloTriangleApplication {
@@ -78,6 +81,29 @@ public:
     }
 
 private:
+    // =======================
+    // Private class variables
+    // =======================
+
+    GLFWwindow* window{};
+
+    VkInstance instance{};
+    VkDebugUtilsMessengerEXT debugMessenger{};
+    VkSurfaceKHR surface{};
+
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice device{};
+
+    VkQueue graphicsQueue{};
+    VkQueue presentQueue{};
+
+    VkSwapchainKHR swapChain{};
+    std::vector<VkImage> swapChainImages{};
+    VkFormat swapChainImageFormat{};
+    VkExtent2D swapChainExtent{};
+
+    std::vector<VkImageView> swapChainImageViews{};
+
     // =======================
     // Private class Functions
 	// =======================
@@ -134,7 +160,6 @@ private:
 
 		// Destroy the swap chain
         vkDestroySwapchainKHR(device, swapChain, nullptr);
-
 		// Destroy the logical device
         vkDestroyDevice(device, nullptr);
 
@@ -180,7 +205,8 @@ private:
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
 
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+        // Create debug information
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{}; // TODO check tutorial to disable writing of all these error messages
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -232,7 +258,6 @@ private:
 
     void pickPhysicalDevice()
     {
-        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -313,7 +338,7 @@ private:
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
-        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+        uint32_t imageCount = swapChainSupport.capabilities.minImageCount;
 		if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
 			imageCount = swapChainSupport.capabilities.maxImageCount;
 		}
@@ -567,29 +592,6 @@ private:
 
         return VK_FALSE;
     }
-    
-    // =======================
-	// Private class variables
-    // =======================
-
-    GLFWwindow* window{};
-
-    VkInstance instance{};
-    VkDebugUtilsMessengerEXT debugMessenger{};
-    VkSurfaceKHR surface{};
-
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device{};
-
-    VkQueue graphicsQueue{};
-    VkQueue presentQueue;
-
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-
-    std::vector<VkImageView> swapChainImageViews;
 };
 
 int main() {
