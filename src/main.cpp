@@ -37,7 +37,6 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-// Function to create VkDebugUtilsMessengerEXT object
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
@@ -48,7 +47,6 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     }
 }
 
-// Function to destroy VkDebugUtilsMessengerEXT object
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr) {
@@ -56,7 +54,6 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
     }
 }
 
-// Struct to hold queue family indices
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily{};
     std::optional<uint32_t> presentFamily{};
@@ -120,9 +117,8 @@ private:
         // Initialize GLFW library
 		glfwInit();
 
-		// Tell GLFW not to create an OpenGL context
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		// Disable window resizing  
+		// Tell GLFW not to create an OpenGL context & disable window resizing
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);  
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 		// Create a window 
@@ -131,30 +127,14 @@ private:
     }
 
     void initVulkan() {
-		// Create a Vulkan instance
         createInstance();
-
-		// Setup the debug messenger
 		setupDebugMessenger();
-
-		// Create a window surface
-        createSurface();
-
-		// Select a physical device
+        createSurface(); // window surface
         pickPhysicalDevice();
-
-		// Create a logical device
 		createLogicalDevice();
-
-		// Create the swap chain
         createSwapChain();
-
-		// Create image views
         createImageViews();
-
         createRenderPass();
-
-        // Create graphics pipeline
         createGraphicsPipeline();
     }
 
@@ -166,37 +146,26 @@ private:
     }
 
     void cleanup() {
-        // Destroy pipelines
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
-        // Destroy render pass
         vkDestroyRenderPass(device, renderPass, nullptr);
-
-        // Destroy pipeline
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
-		// Destroy the image views
         for (auto imageView : swapChainImageViews) {
             vkDestroyImageView(device, imageView, nullptr);
         }
 
-		// Destroy the swap chain
         vkDestroySwapchainKHR(device, swapChain, nullptr);
-		// Destroy the logical device
-        vkDestroyDevice(device, nullptr);
+        vkDestroyDevice(device, nullptr); // logical device
 
-		// Destroy the debug messenger
         if (enableValidationLayers) {
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
         }
 
-		// Destroy the surface
         vkDestroySurfaceKHR(instance, surface, nullptr);
-		// Destroy the Vulkan instance
-        vkDestroyInstance(instance, nullptr);
+        vkDestroyInstance(instance, nullptr); // vulkan instance
 
-		// Destroy the window
         glfwDestroyWindow(window);
 
 		// Terminate GLFW library
@@ -204,12 +173,10 @@ private:
     }
 
     void createInstance() {
-		// Check if validation layers are available
         if (enableValidationLayers && !checkValidationLayerSupport()) {
             throw std::runtime_error("validation layers requested, but not available!");
         }
 
-		// Fill in struct with application info
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Hello Triangle";
@@ -218,7 +185,7 @@ private:
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
-		// Fill in struct with instance info (global extensions and validation layers we want to use)
+		// (global extensions and validation layers we want to use)
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
@@ -228,8 +195,7 @@ private:
         createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         createInfo.ppEnabledExtensionNames = extensions.data();
 
-        // Create debug information
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{}; // TODO check tutorial to disable writing of all these error messages
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
         if (enableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             createInfo.ppEnabledLayerNames = validationLayers.data();

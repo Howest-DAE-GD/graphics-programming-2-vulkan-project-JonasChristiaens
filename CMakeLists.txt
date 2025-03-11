@@ -51,3 +51,17 @@ set(${PROJECT_NAME}_SOURCES
 # Add the project executable
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan glfw glm)
+
+
+# Copy resources to output folder
+set(RESOURCES_SOURCE_DIR "./${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+file(GLOB_RECURSE RESOURCE_FILES
+    "${SHADERS_SOURCE_DIR}/*.spv"
+)
+set(RESOURCES_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/")
+file(MAKE_DIRECTORY ${RESOURCES_OUT_DIR})
+foreach(RESOURCE ${RESOURCE_FILES})
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${RESOURCE}
+    ${RESOURCES_OUT_DIR})
+endforeach(RESOURCE)
