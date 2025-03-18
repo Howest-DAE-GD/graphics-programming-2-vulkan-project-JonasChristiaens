@@ -14,7 +14,6 @@ if (NOT Vulkan_FOUND)
     message(FATAL_ERROR "Vulkan not found!")
 endif()
 
-
 # Include FetchContent to download external libaries
 include(FetchContent)
 
@@ -41,8 +40,7 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(glfw glm)
-
-    
+ 
 # Set the output directory
 set(${PROJECT_NAME}_SOURCES
     "src/main.cpp"
@@ -52,6 +50,12 @@ set(${PROJECT_NAME}_SOURCES
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan glfw glm)
 
+## Add custom command to run compile.bat every time the project is built
+# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+#       COMMAND ${CMAKE_COMMAND} -E echo "Running compile.bat..."
+#       COMMAND ${CMAKE_COMMAND} -E env "PATH=$ENV{PATH}" compile.bat
+#       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+# )
 
 # Copy resources to output folder
 set(RESOURCES_SOURCE_DIR "./${CMAKE_CURRENT_SOURCE_DIR}/shaders")
