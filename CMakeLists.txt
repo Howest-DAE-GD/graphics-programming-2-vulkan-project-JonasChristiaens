@@ -50,22 +50,22 @@ set(${PROJECT_NAME}_SOURCES
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan glfw glm)
 
-## Add custom command to run compile.bat every time the project is built
-# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-#       COMMAND ${CMAKE_COMMAND} -E echo "Running compile.bat..."
-#       COMMAND ${CMAKE_COMMAND} -E env "PATH=$ENV{PATH}" compile.bat
-#       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-# )
-
-# Copy resources to output folder
-set(RESOURCES_SOURCE_DIR "./${CMAKE_CURRENT_SOURCE_DIR}/shaders")
-file(GLOB_RECURSE RESOURCE_FILES
-    "${SHADERS_SOURCE_DIR}/*.spv"
+# Add custom command to run compile.bat every time the project is built
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "Running compile.bat..."
+    COMMAND ${CMAKE_COMMAND} -E env "PATH=$ENV{PATH}" ${CMAKE_CURRENT_SOURCE_DIR}/shaders/compile.bat
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+
+set(RESOURCES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 set(RESOURCES_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/")
+
+# Ensure the output directory exists
 file(MAKE_DIRECTORY ${RESOURCES_OUT_DIR})
-foreach(RESOURCE ${RESOURCE_FILES})
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${RESOURCE}
-    ${RESOURCES_OUT_DIR})
-endforeach(RESOURCE)
+
+# Copy all .spv files after build
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCES_SOURCE_DIR} ${RESOURCES_OUT_DIR}
+    COMMENT "Copying compiled shaders to build directory..."
+)
