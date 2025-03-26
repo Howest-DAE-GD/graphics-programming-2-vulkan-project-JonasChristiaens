@@ -323,8 +323,10 @@ private:
 
     void createInstance() 
     {
-        if (enableValidationLayers && !checkValidationLayerSupport()) {
-            throw std::runtime_error("validation layers requested, but not available!");
+        if (enableValidationLayers) {
+            if (!checkValidationLayerSupport()) {
+                throw std::runtime_error("validation layers requested, but not available!");
+            }
         }
 
         VkApplicationInfo appInfo{};
