@@ -14,7 +14,7 @@ if (NOT Vulkan_FOUND)
     message(FATAL_ERROR "Vulkan not found!")
 endif()
 
-# Include FetchContent to download external libaries
+# Include FetchContent to download external libraries
 include(FetchContent)
 
 # Fetch Vulkan GLFW
@@ -24,6 +24,7 @@ FetchContent_Declare(
   GIT_TAG 3.4
   GIT_SHALLOW ON
 )
+
 # Fetch Vulkan GLM
 FetchContent_Declare(
   glm
@@ -31,6 +32,7 @@ FetchContent_Declare(
   GIT_TAG 1.0.1
   GIT_SHALLOW ON
 )
+
 # Fetch Vulkan VMA
 FetchContent_Declare(
   vma
@@ -39,8 +41,16 @@ FetchContent_Declare(
   GIT_SHALLOW ON
 )
 
-FetchContent_MakeAvailable(glfw glm)
- 
+# Fetch stb
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG master
+  GIT_SHALLOW ON
+)
+
+FetchContent_MakeAvailable(glfw glm stb)
+
 # Set the output directory
 set(${PROJECT_NAME}_SOURCES
     "src/main.cpp"
@@ -50,6 +60,9 @@ set(${PROJECT_NAME}_SOURCES
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan glfw glm)
 
+# Include the stb_image.h header
+target_include_directories(${PROJECT_NAME} PRIVATE ${stb_SOURCE_DIR})
+
 # Add custom command to run compile.bat every time the project is built
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E echo "Running compile.bat..."
@@ -57,15 +70,28 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-
-set(RESOURCES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
-set(RESOURCES_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/")
+# Set the shaders source and output directories
+set(SHADERS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+set(SHADERS_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/")
 
 # Ensure the output directory exists
-file(MAKE_DIRECTORY ${RESOURCES_OUT_DIR})
+file(MAKE_DIRECTORY ${SHADERS_OUT_DIR})
 
-# Copy all .spv files after build
+# Copy all files after build
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCES_SOURCE_DIR} ${RESOURCES_OUT_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${SHADERS_SOURCE_DIR} ${SHADERS_OUT_DIR}
     COMMENT "Copying compiled shaders to build directory..."
+)
+
+# Set the textures source and output directories
+set(TEXTURES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/textures")
+set(TEXTURES_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/textures/")
+
+# Ensure the textures output directory exists
+file(MAKE_DIRECTORY ${TEXTURES_OUT_DIR})
+
+# Copy all texture files after build
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${TEXTURES_SOURCE_DIR} ${TEXTURES_OUT_DIR}
+    COMMENT "Copying textures to build directory..."
 )
