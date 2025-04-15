@@ -222,6 +222,8 @@ private:
 
     bool framebufferResized{};
 
+    int testVar{}; //branch creation testing
+
     // =======================
     // Private class Functions
 	// =======================
