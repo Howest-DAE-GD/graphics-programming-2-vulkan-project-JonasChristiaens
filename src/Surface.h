@@ -1,18 +1,19 @@
 #pragma once
 
+class Instance;
 class Surface
 {
 public:
 	// constructor & destructor
-	Surface(VkInstance instance, GLFWwindow* window);
+	Surface(Instance* instance, GLFWwindow* window);
 	~Surface();
 
 	// public member functions
-	VkSurfaceKHR getSurface() const;
+	VkSurfaceKHR getSurface() const { return m_Surface; }
 	void createSurface(VkInstance instance, GLFWwindow* window);
 
 private:
 	// private member variables
 	VkSurfaceKHR m_Surface;
-	VkInstance m_Instance;
+	Instance* m_Instance;
 };

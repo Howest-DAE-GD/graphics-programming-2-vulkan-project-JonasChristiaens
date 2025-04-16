@@ -1,21 +1,17 @@
 #include "pch.h"
 #include "Surface.h"
+#include "Instance.h"
 #include <stdexcept>
 
-Surface::Surface(VkInstance instance, GLFWwindow* window)
+Surface::Surface(Instance* instance, GLFWwindow* window)
 	: m_Instance(instance)
 {
-	createSurface(m_Instance, window);
+	createSurface(m_Instance->getInstance(), window);
 }
 
 Surface::~Surface()
 {
-    vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
-}
-
-VkSurfaceKHR Surface::getSurface() const
-{
-    return m_Surface;
+    vkDestroySurfaceKHR(m_Instance->getInstance(), m_Surface, nullptr);
 }
 
 void Surface::createSurface(VkInstance instance, GLFWwindow* window)

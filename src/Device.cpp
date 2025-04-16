@@ -1,10 +1,12 @@
 #include "pch.h"
 #include "Device.h"
+#include "Surface.h"
+#include "Instance.h"
 
 #include <stdexcept>
 #include <set>
 
-Device::Device(VkSurfaceKHR surface, VkInstance instance)
+Device::Device(Surface* surface, Instance* instance)
 	: m_Surface(surface)
     , m_Instance(instance)
 {
@@ -17,35 +19,10 @@ Device::~Device()
     vkDestroyDevice(m_Device, nullptr); // logical device
 }
 
-VkDevice Device::getDevice() const
-{
-	return m_Device;
-}
-
-VkPhysicalDevice Device::getPhysicalDevice() const
-{
-	return m_PhysicalDevice;
-}
-
-VkSampleCountFlagBits Device::getMsaaSamples() const
-{
-    return m_MsaaSamples;
-}
-
-VkQueue Device::getGraphicsQueue() const
-{
-    return m_GraphicsQueue;
-}
-
-VkQueue Device::getPresentQueue() const
-{
-    return m_PresentQueue;
-}
-
 void Device::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(m_Instance->getInstance(), &deviceCount, nullptr);
 
     if (deviceCount == 0)
     {
@@ -53,7 +30,7 @@ void Device::pickPhysicalDevice()
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
+    vkEnumeratePhysicalDevices(m_Instance->getInstance(), &deviceCount, devices.data());
 
     for (const auto& device : devices) {
         if (isDeviceSuitable(device)) {
@@ -145,7 +122,7 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device)
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, m_Surface);
+        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, m_Surface->getSurface());
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
@@ -192,7 +169,7 @@ QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)
         }
 
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface->getSurface(), &presentSupport);
 
         if (presentSupport) {
             indices.presentFamily = i;

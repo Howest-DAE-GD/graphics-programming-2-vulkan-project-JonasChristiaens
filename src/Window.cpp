@@ -30,24 +30,9 @@ Window::~Window()
     glfwTerminate();
 }
 
-bool Window::shouldClose() const
-{
-    return glfwWindowShouldClose(m_pWindow);
-}
-
 void Window::pollEvents() const
 {
     glfwPollEvents();
-}
-
-GLFWwindow* Window::getGLFWwindow() const
-{
-    return m_pWindow;
-}
-
-bool Window::wasWindowResized() const 
-{
-    return m_FramebufferResized;
 }
 
 void Window::resetWindowResizedFlag() 

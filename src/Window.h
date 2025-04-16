@@ -9,11 +9,11 @@ public:
 	~Window();
 
 	// public member functions
-	bool shouldClose() const;
 	void pollEvents() const;
-	GLFWwindow* getGLFWwindow() const;
+	bool shouldClose() const { return glfwWindowShouldClose(m_pWindow); }
+	GLFWwindow* getGLFWwindow() const { return m_pWindow; }
 
-	bool wasWindowResized() const;
+	bool wasWindowResized() const { return m_FramebufferResized; }
 	void resetWindowResizedFlag();
 
 	void setFramebufferResizedCallback();

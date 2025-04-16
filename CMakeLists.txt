@@ -67,6 +67,8 @@ set(${PROJECT_NAME}_SOURCES
     "src/Surface.cpp"
     "src/Device.cpp"
     "src/utils.cpp"
+    "src/SwapChain.cpp"
+    "src/RenderPass.cpp"
 )
 
 # Add the project executable
