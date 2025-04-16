@@ -1,0 +1,60 @@
+#pragma once
+#include <string>
+#include <array>
+#include <vector>
+#include <optional>
+
+// Constants
+extern const std::string MODEL_PATH;
+extern const std::string TEXTURE_PATH;
+
+extern const int MAX_FRAMES_IN_FLIGHT;
+
+extern const std::vector<const char*> validationLayers;
+extern const std::vector<const char*> deviceExtensions;
+
+#ifdef NDEBUG
+extern const bool enableValidationLayers;
+#else
+extern const bool enableValidationLayers;
+#endif
+
+// Structs
+struct QueueFamilyIndices {
+	std::optional<uint32_t> graphicsFamily{};
+	std::optional<uint32_t> presentFamily{};
+
+    bool isComplete() const;
+};
+
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities{};
+    std::vector<VkSurfaceFormatKHR> formats{};
+    std::vector<VkPresentModeKHR> presentModes{};
+};
+
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec2 texCoord;
+
+    static VkVertexInputBindingDescription getBindingDescription();
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+
+    bool operator==(const Vertex& other) const;
+};
+
+namespace std {
+    template<> struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const;
+    };
+}
+
+struct UniformBufferObject {
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
+};
+
+// functions
+SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);

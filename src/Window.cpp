@@ -1,8 +1,10 @@
+#include "pch.h"
 #include "Window.h"
+#include "utils.h"
 
 Window::Window(std::string title)
-    : m_pTitle(title), 
-    m_FramebufferResized(false) 
+    : m_pTitle(title)
+    , m_FramebufferResized(false) 
 {
     // Initialize GLFW library
     glfwInit();

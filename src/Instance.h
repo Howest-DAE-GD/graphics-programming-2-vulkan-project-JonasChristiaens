@@ -1,12 +1,10 @@
 #pragma once
-#include "stdafx.h"
 #include <vector>
-#include <stdexcept>
 
 class Instance
 {
 public:
-	Instance(const bool validationLayersEnabled, const std::vector<const char*>& validationLayers);
+	Instance();
 	~Instance();
 
 	// public member functions
@@ -15,9 +13,6 @@ public:
 
 private:
 	// private member variables
-	const bool m_ValidationLayersEnabled{};
-	const std::vector<const char*> m_ValidationLayers{};
-
 	VkInstance m_Instance{};
 	VkDebugUtilsMessengerEXT m_DebugMessenger{};
 

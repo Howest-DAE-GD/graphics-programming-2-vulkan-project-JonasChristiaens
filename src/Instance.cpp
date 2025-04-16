@@ -1,23 +1,18 @@
+#include "pch.h"
 #include "Instance.h"
+#include "utils.h"
 #include <iostream>
+#include <stdexcept>
 
-Instance::Instance(const bool validationLayersEnabled, const std::vector<const char*>& validationLayers)
-    : m_ValidationLayersEnabled(validationLayersEnabled)
-	, m_ValidationLayers(validationLayers)
+Instance::Instance()
 {
-    if (m_ValidationLayersEnabled) {
-        if (!checkValidationLayerSupport()) {
-            throw std::runtime_error("validation layers requested, but not available!");
-        }
-    }
-
 	createInstance();
-    setupDebugMessenger(m_ValidationLayers);
+    setupDebugMessenger(validationLayers);
 }
 
 Instance::~Instance()
 {
-    if (m_DebugMessenger != VK_NULL_HANDLE) {
+    if (enableValidationLayers) {
         DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
     }
 
@@ -35,6 +30,12 @@ VkDebugUtilsMessengerEXT Instance::getDebugMessenger() const
 
 void Instance::createInstance()
 {
+    if (enableValidationLayers) {
+        if (!checkValidationLayerSupport()) {
+            throw std::runtime_error("validation layers requested, but not available!");
+        }
+    }
+
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Hello Triangle";
@@ -54,9 +55,9 @@ void Instance::createInstance()
     createInfo.ppEnabledExtensionNames = extensions.data();
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (m_ValidationLayersEnabled) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.size());
-        createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
+    if (enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
 
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
@@ -81,7 +82,7 @@ bool Instance::checkValidationLayerSupport()
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char* layerName : m_ValidationLayers) {
+    for (const char* layerName : validationLayers) {
         bool layerFound = false;
 
         for (const auto& layerProperties : availableLayers) {
@@ -107,7 +108,7 @@ std::vector<const char*> Instance::getRequiredExtensions()
 
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    if (m_ValidationLayersEnabled) {
+    if (enableValidationLayers) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
@@ -116,7 +117,7 @@ std::vector<const char*> Instance::getRequiredExtensions()
 
 void Instance::setupDebugMessenger(const std::vector<const char*>& validationLayers)
 {
-    if (!m_ValidationLayersEnabled) return;
+    if (!enableValidationLayers) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);

@@ -64,6 +64,9 @@ set(${PROJECT_NAME}_SOURCES
     "src/main.cpp"
     "src/Window.cpp"
     "src/Instance.cpp"
+    "src/Surface.cpp"
+    "src/Device.cpp"
+    "src/utils.cpp"
 )
 
 # Add the project executable
