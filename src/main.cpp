@@ -8,6 +8,7 @@
 #include "Device.h"
 #include "SwapChain.h"
 #include "Renderpass.h"
+#include "DescriptorSetLayout.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -54,8 +55,8 @@ private:
     SwapChain* m_pSwapChain{};
 
 	Renderpass* m_pRenderpass{}; 
+	DescriptorSetLayout* m_pDescriptorSetLayout{};
 
-    VkDescriptorSetLayout descriptorSetLayout{};
     VkPipelineLayout pipelineLayout{};
     VkPipeline graphicsPipeline{};
 
@@ -100,7 +101,7 @@ private:
 		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface); // createSwapChain & createImageViews
         m_pRenderpass = new Renderpass(m_pDevice, m_pSwapChain); // createRenderPass
 
-        createDescriptorSetLayout();
+		m_pDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
         createGraphicsPipeline();
         createCommandPool();
 
@@ -149,7 +150,7 @@ private:
         }
 
         vkDestroyDescriptorPool(m_pDevice->getDevice(), descriptorPool, nullptr);
-        vkDestroyDescriptorSetLayout(m_pDevice->getDevice(), descriptorSetLayout, nullptr);
+		m_pDescriptorSetLayout->cleanupDescriptorSetLayout();
 
         vkDestroyBuffer(m_pDevice->getDevice(), indexBuffer, nullptr);
         vkFreeMemory(m_pDevice->getDevice(), indexBufferMemory, nullptr);
@@ -176,34 +177,6 @@ private:
 		delete m_pSurface;
         delete m_pInstance;
         delete m_pWindow;
-    }
-
-    // Provide details about every descriptor binding used in shaders for pipeline creation
-    void createDescriptorSetLayout()
-    {
-        VkDescriptorSetLayoutBinding uboLayoutBinding{};
-        uboLayoutBinding.binding = 0; // binding used in shader
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; // type of of descriptor
-        uboLayoutBinding.descriptorCount = 1; // nr of values in array
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // specify in which shader stage descriptor will be referenced
-
-        // combined image sampler descriptor
-        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        samplerLayoutBinding.binding = 1;
-        samplerLayoutBinding.descriptorCount = 1;
-        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerLayoutBinding.pImmutableSamplers = nullptr;
-        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
-        // descriptor set layout has to be specified during pipeline creation to set which descriptors the shaders will be using
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-        layoutInfo.pBindings = bindings.data();
-
-        if (vkCreateDescriptorSetLayout(m_pDevice->getDevice(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
-            throw std::runtime_error("failed to create descriptor set layout!");
     }
 
     void createGraphicsPipeline()
@@ -303,7 +276,7 @@ private:
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout; // referencing layout object
+        pipelineLayoutInfo.pSetLayouts = &m_pDescriptorSetLayout->getDescriptorSetLayout(); // referencing layout object
 
         if (vkCreatePipelineLayout(m_pDevice->getDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
         {
@@ -731,7 +704,7 @@ private:
 	// Function to allocate descriptor sets
     void createDescriptorSets()
     {
-        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_pDescriptorSetLayout->getDescriptorSetLayout());
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;

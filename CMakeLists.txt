@@ -69,7 +69,8 @@ set(${PROJECT_NAME}_SOURCES
     "src/Device.cpp"
     "src/SwapChain.cpp"
     "src/RenderPass.cpp"
-)
+    "src/DescriptorSetLayout.cpp"
+ "src/DescriptorSet.cpp")
 
 # Add the project executable
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
