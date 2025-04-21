@@ -10,11 +10,6 @@ DescriptorSetLayout::DescriptorSetLayout(Device* device)
 	createDescriptorSetLayout();
 }
 
-DescriptorSetLayout::~DescriptorSetLayout()
-{
-	cleanupDescriptorSetLayout();
-}
-
 void DescriptorSetLayout::cleanupDescriptorSetLayout()
 {
     vkDestroyDescriptorSetLayout(m_pDevice->getDevice(), m_DescriptorSetLayout, nullptr);

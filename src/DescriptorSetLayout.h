@@ -6,7 +6,7 @@ class DescriptorSetLayout
 public:
 	// constructor & destructor
 	DescriptorSetLayout(Device* device);
-	~DescriptorSetLayout();
+	~DescriptorSetLayout() = default;
 	
 	// public member functions
 	const VkDescriptorSetLayout& getDescriptorSetLayout() const { return m_DescriptorSetLayout; }

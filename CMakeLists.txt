@@ -70,7 +70,8 @@ set(${PROJECT_NAME}_SOURCES
     "src/SwapChain.cpp"
     "src/RenderPass.cpp"
     "src/DescriptorSetLayout.cpp"
- "src/DescriptorSet.cpp")
+    "src/Pipeline.cpp"
+)
 
 # Add the project executable
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
