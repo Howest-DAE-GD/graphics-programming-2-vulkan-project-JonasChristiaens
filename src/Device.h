@@ -19,6 +19,7 @@ public:
 	VkQueue getPresentQueue() const { return m_PresentQueue; }
 
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+	QueueFamilyIndices findQueueFamilies();
 private:
 	// private member variables
 	Surface* m_Surface;

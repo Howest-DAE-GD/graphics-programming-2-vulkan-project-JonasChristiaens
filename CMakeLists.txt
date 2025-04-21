@@ -62,11 +62,11 @@ FetchContent_MakeAvailable(glfw glm stb tob)
 # Set the output directory
 set(${PROJECT_NAME}_SOURCES
     "src/main.cpp"
+    "src/utils.cpp"
     "src/Window.cpp"
     "src/Instance.cpp"
     "src/Surface.cpp"
     "src/Device.cpp"
-    "src/utils.cpp"
     "src/SwapChain.cpp"
     "src/RenderPass.cpp"
 )

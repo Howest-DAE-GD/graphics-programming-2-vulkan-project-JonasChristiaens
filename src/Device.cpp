@@ -184,3 +184,8 @@ QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)
 
     return indices;
 }
+
+QueueFamilyIndices Device::findQueueFamilies()
+{
+    return findQueueFamilies(m_PhysicalDevice);
+}
