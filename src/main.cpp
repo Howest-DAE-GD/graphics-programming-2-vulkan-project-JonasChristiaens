@@ -340,7 +340,7 @@ private:
 
     void createCommandPool()
     {
-        QueueFamilyIndices queueFamilyIndices = m_pDevice->findQueueFamilies(m_pDevice->getPhysicalDevice());
+        QueueFamilyIndices queueFamilyIndices = m_pDevice->findQueueFamilies();
 
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
