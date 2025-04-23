@@ -13,9 +13,14 @@ SwapChain::SwapChain(Device* device, Window* window, Surface* surface)
 	: m_pDevice(device)
     , m_pWindow(window)
 	, m_pSurface(surface)
+    , m_pImage(new Image(device))
 {
 	createSwapChain();
     createImageViews();
+}
+SwapChain::~SwapChain()
+{
+    delete m_pImage;
 }
 
 void SwapChain::createSwapChain()
@@ -74,14 +79,6 @@ void SwapChain::createSwapChain()
 }
 void SwapChain::cleanupSwapChain()
 {
-    vkDestroyImageView(m_pDevice->getDevice(), m_ColorImageView, nullptr);
-    vkDestroyImage(m_pDevice->getDevice(), m_ColorImage, nullptr);
-    vkFreeMemory(m_pDevice->getDevice(), m_ColorImageMemory, nullptr);
-
-    vkDestroyImageView(m_pDevice->getDevice(), m_DepthImageView, nullptr);
-    vkDestroyImage(m_pDevice->getDevice(), m_DepthImage, nullptr);
-    vkFreeMemory(m_pDevice->getDevice(), m_DepthImageMemory, nullptr);
-
     for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++) {
         vkDestroyFramebuffer(m_pDevice->getDevice(), m_SwapChainFramebuffers[i], nullptr);
     }
@@ -107,9 +104,7 @@ void SwapChain::recreateSwapChain(Renderpass* renderpass)
 
     createSwapChain();
     createImageViews();
-    createColorResources();
-    createDepthResources();
-    createFramebuffers(renderpass);
+    createResources(renderpass);
 }
 
 VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
@@ -153,119 +148,19 @@ VkExtent2D SwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilit
     }
 }
 
-VkImageView SwapChain::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
-{
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = image;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = format;
-    viewInfo.subresourceRange.aspectMask = aspectFlags;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = mipLevels;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-
-    VkImageView imageView;
-    if (vkCreateImageView(m_pDevice->getDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create image view!");
-    }
-
-    return imageView;
-}
-void SwapChain::createImage(uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
-{
-    // parameters for an image
-    VkImageCreateInfo imageInfo{};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D; // tells vulkan what kind of coordinate system texels will be addressed in
-    imageInfo.extent.width = texWidth; // specification of image dimensions
-    imageInfo.extent.height = texHeight;
-    imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = mipLevels;
-    imageInfo.arrayLayers = 1;
-    imageInfo.format = format; // use same format for texels als pixels in buffer
-    imageInfo.tiling = tiling; // texels are laid out in implementation defined order for optimal access
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // not usable by GPU and very first transition will discard texels
-    imageInfo.usage = usage; // image will be used as destination for copy operation and as a we want to access image from shader
-    imageInfo.samples = numSamples;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateImage(m_pDevice->getDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
-        throw std::runtime_error("failed to create image!");
-
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(m_pDevice->getDevice(), image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(m_pDevice->getDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
-        throw std::runtime_error("failed to allocate image memory!");
-
-    vkBindImageMemory(m_pDevice->getDevice(), image, imageMemory, 0);
-}
-
-uint32_t SwapChain::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
-{
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(m_pDevice->getPhysicalDevice(), &memProperties);
-
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
-        }
-    }
-
-    throw std::runtime_error("failed to find suitable memory type!");
-}
-VkFormat SwapChain::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
-{
-    for (VkFormat format : candidates) {
-        VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(m_pDevice->getPhysicalDevice(), format, &props);
-
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
-            return format;
-        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-            return format;
-    }
-
-    throw std::runtime_error("failed to find supported format!");
-}
-VkFormat SwapChain::findDepthFormat()
-{
-    return findSupportedFormat(
-        { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
-}
-
 void SwapChain::createImageViews()
 {
     m_SwapChainImageViews.resize(m_SwapChainImages.size());
 
     for (uint32_t i = 0; i < m_SwapChainImages.size(); i++) {
-        m_SwapChainImageViews[i] = createImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        m_SwapChainImageViews[i] = m_pImage->createImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 }
-void SwapChain::createColorResources()
+void SwapChain::createResources(Renderpass* renderpass)
 {
-    VkFormat colorFormat = m_SwapChainImageFormat;
-
-    createImage(m_SwapChainExtent.width, m_SwapChainExtent.height, 1, m_pDevice->getMsaaSamples(), colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_ColorImage, m_ColorImageMemory);
-    m_ColorImageView = createImageView(m_ColorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-}
-void SwapChain::createDepthResources()
-{
-    VkFormat depthFormat = findDepthFormat();
-
-    createImage(m_SwapChainExtent.width, m_SwapChainExtent.height, 1, m_pDevice->getMsaaSamples(), depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
-    // transition image layout to depth stencil attachment
-    m_DepthImageView = createImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+    m_pImage->createColorResources(m_SwapChainExtent.width, m_SwapChainExtent.height, m_pDevice->getMsaaSamples(), m_SwapChainImageFormat);
+    m_pImage->createDepthResources(m_SwapChainExtent.width, m_SwapChainExtent.height, m_pDevice->getMsaaSamples());
+    createFramebuffers(renderpass);
 }
 void SwapChain::createFramebuffers(Renderpass* renderpass)
 {
@@ -274,8 +169,8 @@ void SwapChain::createFramebuffers(Renderpass* renderpass)
     for (size_t idx = 0; idx < m_SwapChainImageViews.size(); idx++)
     {
         std::array<VkImageView, 3> attachments = {
-        m_ColorImageView,
-        m_DepthImageView,
+        m_pImage->getColorImageView(),
+        m_pImage->getDepthImageView(),
         m_SwapChainImageViews[idx]
         };
 

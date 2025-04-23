@@ -7,6 +7,7 @@
 #include "Surface.h"
 #include "Device.h"
 #include "SwapChain.h"
+#include "Image.h"
 #include "Renderpass.h"
 #include "DescriptorSetLayout.h"
 #include "Pipeline.h"
@@ -105,9 +106,7 @@ private:
 		m_pPipeline = new Pipeline(m_pDevice, m_pDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
         createCommandPool();
 
-        m_pSwapChain->createColorResources();
-		m_pSwapChain->createDepthResources();
-        m_pSwapChain->createFramebuffers(m_pRenderpass);
+		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
 
         createTextureImage();
         createTextureImageView();
@@ -224,7 +223,7 @@ private:
         vkUnmapMemory(m_pDevice->getDevice(), stagingBufferMemory);
 
         stbi_image_free(pixels); // clean up original pixel array
-        m_pSwapChain->createImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+        m_pSwapChain->m_pImage->createImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 		
         // copy staging buffer to texture image
         transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
@@ -343,7 +342,7 @@ private:
 
     void createTextureImageView()
     {
-        textureImageView = m_pSwapChain->createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        textureImageView = m_pSwapChain->m_pImage->createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     }
 
     void createTextureSampler() {
@@ -642,7 +641,7 @@ private:
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = m_pSwapChain->findMemoryType(memRequirements.memoryTypeBits, properties);
+        allocInfo.memoryTypeIndex = m_pSwapChain->m_pImage->findMemoryType(memRequirements.memoryTypeBits, properties);
 
         if (vkAllocateMemory(m_pDevice->getDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate buffer memory!");

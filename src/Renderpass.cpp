@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Renderpass.h"
+
 #include "Device.h"
 #include "SwapChain.h"
 #include <stdexcept>
@@ -24,7 +25,7 @@ void Renderpass::createRenderPass()
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = m_pSwapChain->findDepthFormat();
+    depthAttachment.format = m_pSwapChain->m_pImage->findDepthFormat();
     depthAttachment.samples = m_pDevice->getMsaaSamples();
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
