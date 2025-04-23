@@ -9,7 +9,7 @@ class Device
 public:
 	// constructor & destructor
 	Device(Surface* surface, Instance* instance);
-	~Device();
+	~Device() = default;
 
 	// public member functions
 	VkDevice getDevice() const { return m_Device; }
@@ -20,6 +20,7 @@ public:
 
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 	QueueFamilyIndices findQueueFamilies();
+	void cleanupDevice();
 private:
 	// private member variables
 	Surface* m_Surface;

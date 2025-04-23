@@ -6,9 +6,12 @@ class Image
 public:
 	// constructor & destructor
 	Image(Device* device);
-	~Image();
+	~Image() = default;
 
 	// public member functions
+	static VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels, Device* device);
+	static uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, Device* device);
+	
 	VkImageView getColorImageView() const { return m_ColorImageView; }
 	VkImageView getDepthImageView() const { return m_DepthImageView; }
 
@@ -16,8 +19,6 @@ public:
 	void createColorResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples, VkFormat colorFormat);
 	void createDepthResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples);
 	void createImage(uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	VkFormat findDepthFormat();
 
 private:

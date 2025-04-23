@@ -73,7 +73,9 @@ set(${PROJECT_NAME}_SOURCES
     "src/DescriptorSetLayout.cpp"
     "src/Pipeline.cpp"
     "src/CommandPool.cpp"
-)
+    "src/Texture.cpp"
+    "src/Buffer.cpp" 
+ "src/Commands.cpp")
 
 # Add the project executable
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})

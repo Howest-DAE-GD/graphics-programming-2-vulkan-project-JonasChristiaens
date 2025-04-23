@@ -35,7 +35,6 @@ private:
 	Device* m_pDevice;
 	Window* m_pWindow;
 	Surface* m_pSurface;
-	
 
 	VkSwapchainKHR m_SwapChain{};
 	std::vector<VkImage> m_SwapChainImages{};

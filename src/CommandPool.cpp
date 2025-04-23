@@ -10,9 +10,9 @@ CommandPool::CommandPool(Device* device)
 	createCommandPool();
 }
 
-CommandPool::~CommandPool()
+void CommandPool::destroyCommandPool()
 {
-	vkDestroyCommandPool(m_pDevice->getDevice(), m_CommandPool, nullptr);
+    vkDestroyCommandPool(m_pDevice->getDevice(), m_CommandPool, nullptr);
 }
 
 void CommandPool::createCommandPool()

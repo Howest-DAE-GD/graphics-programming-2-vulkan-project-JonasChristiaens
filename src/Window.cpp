@@ -21,15 +21,6 @@ Window::Window(std::string title)
     glfwSetFramebufferSizeCallback(m_pWindow, framebufferResizeCallback);
 }
 
-Window::~Window()
-{
-	// Destroy the window
-    glfwDestroyWindow(m_pWindow);
-
-    // Terminate GLFW library
-    glfwTerminate();
-}
-
 void Window::pollEvents() const
 {
     glfwPollEvents();
@@ -43,6 +34,15 @@ void Window::resetWindowResizedFlag()
 void Window::setFramebufferResizedCallback() 
 {
     glfwSetFramebufferSizeCallback(m_pWindow, framebufferResizeCallback);
+}
+
+void Window::cleanupWindow()
+{
+    // Destroy the window
+    glfwDestroyWindow(m_pWindow);
+
+    // Terminate GLFW library
+    glfwTerminate();
 }
 
 void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height) 

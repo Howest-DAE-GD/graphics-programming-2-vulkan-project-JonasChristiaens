@@ -14,11 +14,6 @@ Device::Device(Surface* surface, Instance* instance)
 	createLogicalDevice();
 }
 
-Device::~Device()
-{
-    vkDestroyDevice(m_Device, nullptr); // logical device
-}
-
 void Device::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;
@@ -188,4 +183,9 @@ QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)
 QueueFamilyIndices Device::findQueueFamilies()
 {
     return findQueueFamilies(m_PhysicalDevice);
+}
+
+void Device::cleanupDevice()
+{
+    vkDestroyDevice(m_Device, nullptr); // logical device
 }

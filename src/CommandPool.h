@@ -6,10 +6,13 @@ class CommandPool
 public:
 	// constructor & destructor
 	CommandPool(Device* device);
-	~CommandPool();
+	~CommandPool() = default;
 	
 	// public member functions
 	VkCommandPool getCommandPool() const { return m_CommandPool; }
+
+	void destroyCommandPool();
+
 private:
 	// private member variables
 	Device* m_pDevice{};

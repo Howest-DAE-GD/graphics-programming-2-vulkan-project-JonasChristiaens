@@ -10,15 +10,6 @@ Instance::Instance()
     setupDebugMessenger(validationLayers);
 }
 
-Instance::~Instance()
-{
-    if (enableValidationLayers) {
-        DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
-    }
-
-	vkDestroyInstance(m_Instance, nullptr); // vulkan instance
-}
-
 VkInstance Instance::getInstance() const
 {
     return m_Instance;
@@ -26,6 +17,18 @@ VkInstance Instance::getInstance() const
 VkDebugUtilsMessengerEXT Instance::getDebugMessenger() const
 {
     return m_DebugMessenger;
+}
+
+void Instance::destroyDebugUtilsMessenger()
+{
+    if (enableValidationLayers) {
+        DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+    }
+}
+
+void Instance::destroyInstance()
+{
+    vkDestroyInstance(m_Instance, nullptr); // vulkan instance
 }
 
 void Instance::createInstance()

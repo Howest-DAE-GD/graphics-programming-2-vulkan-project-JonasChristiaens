@@ -5,11 +5,14 @@ class Instance
 {
 public:
 	Instance();
-	~Instance();
+	~Instance() = default;
 
 	// public member functions
 	VkInstance getInstance() const;
 	VkDebugUtilsMessengerEXT getDebugMessenger() const;
+
+	void destroyDebugUtilsMessenger();
+	void destroyInstance();
 
 private:
 	// private member variables

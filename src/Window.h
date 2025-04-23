@@ -6,7 +6,7 @@ class Window
 public:
 	// constructor & destructor
 	Window(std::string title);
-	~Window();
+	~Window() = default;
 
 	// public member functions
 	void pollEvents() const;
@@ -17,6 +17,8 @@ public:
 	void resetWindowResizedFlag();
 
 	void setFramebufferResizedCallback();
+
+	void cleanupWindow();
 
 private:
 	// private member variables

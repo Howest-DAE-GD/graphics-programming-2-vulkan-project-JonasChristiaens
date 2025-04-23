@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "utils.h"
 
+#include "CommandPool.h"
+#include "Device.h"
+
 #include <fstream>
 #include <stdexcept>
 

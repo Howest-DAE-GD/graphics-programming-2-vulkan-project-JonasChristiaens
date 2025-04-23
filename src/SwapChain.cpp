@@ -79,6 +79,8 @@ void SwapChain::createSwapChain()
 }
 void SwapChain::cleanupSwapChain()
 {
+    m_pImage->cleanup();
+
     for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++) {
         vkDestroyFramebuffer(m_pDevice->getDevice(), m_SwapChainFramebuffers[i], nullptr);
     }
@@ -153,7 +155,7 @@ void SwapChain::createImageViews()
     m_SwapChainImageViews.resize(m_SwapChainImages.size());
 
     for (uint32_t i = 0; i < m_SwapChainImages.size(); i++) {
-        m_SwapChainImageViews[i] = m_pImage->createImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        m_SwapChainImageViews[i] = Image::createImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_pDevice);
     }
 }
 void SwapChain::createResources(Renderpass* renderpass)

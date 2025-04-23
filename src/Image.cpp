@@ -8,11 +8,6 @@ Image::Image(Device* device)
 	: m_pDevice(device)
 {
 }
-Image::~Image()
-{
-    cleanup();
-}
-
 void Image::cleanup()
 {
     vkDestroyImageView(m_pDevice->getDevice(), m_ColorImageView, nullptr);
@@ -23,10 +18,11 @@ void Image::cleanup()
     vkDestroyImage(m_pDevice->getDevice(), m_DepthImage, nullptr);
     vkFreeMemory(m_pDevice->getDevice(), m_DepthImageMemory, nullptr);
 }
+
 void Image::createColorResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples, VkFormat colorFormat)
 {
     createImage(width, height, 1, msaaSamples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_ColorImage, m_ColorImageMemory);
-    m_ColorImageView = createImageView(m_ColorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    m_ColorImageView = createImageView(m_ColorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_pDevice);
 }
 void Image::createDepthResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples)
 {
@@ -34,7 +30,7 @@ void Image::createDepthResources(uint32_t width, uint32_t height, VkSampleCountF
 
     createImage(width, height, 1, msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
     // transition image layout to depth stencil attachment
-    m_DepthImageView = createImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+    m_DepthImageView = createImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, m_pDevice);
 }
 
 void Image::createImage(uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
@@ -64,14 +60,14 @@ void Image::createImage(uint32_t texWidth, uint32_t texHeight, uint32_t mipLevel
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, m_pDevice);
 
     if (vkAllocateMemory(m_pDevice->getDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
         throw std::runtime_error("failed to allocate image memory!");
 
     vkBindImageMemory(m_pDevice->getDevice(), image, imageMemory, 0);
 }
-VkImageView Image::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
+VkImageView Image::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels, Device* device)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -85,17 +81,17 @@ VkImageView Image::createImageView(VkImage image, VkFormat format, VkImageAspect
     viewInfo.subresourceRange.layerCount = 1;
 
     VkImageView imageView;
-    if (vkCreateImageView(m_pDevice->getDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+    if (vkCreateImageView(device->getDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image view!");
     }
 
     return imageView;
 }
 
-uint32_t Image::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+uint32_t Image::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, Device* device)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(m_pDevice->getPhysicalDevice(), &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(device->getPhysicalDevice(), &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
