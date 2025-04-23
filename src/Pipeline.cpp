@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "Pipeline.h"
+#include "utils.h"
 
 #include "Device.h"
 #include "DescriptorSetLayout.h"
 #include "Renderpass.h"
 
-#include <fstream>
 #include <stdexcept>
 
 Pipeline::Pipeline(Device* device, DescriptorSetLayout* descriptorSetLayout, Renderpass* renderpass)
@@ -144,25 +144,6 @@ void Pipeline::createGraphicsPipeline()
 
     vkDestroyShaderModule(m_pDevice->getDevice(), fragShaderModule, nullptr);
     vkDestroyShaderModule(m_pDevice->getDevice(), vertShaderModule, nullptr);
-}
-
-std::vector<char> Pipeline::readFile(const std::string& filename)
-{
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open()) {
-        throw std::runtime_error("failed to open file!");
-    }
-
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    file.close();
-
-    return buffer;
 }
 
 VkShaderModule Pipeline::createShaderModule(const std::vector<char>& code)

@@ -5,18 +5,23 @@
 #include <optional>
 
 // Constants
-extern const std::string MODEL_PATH;
-extern const std::string TEXTURE_PATH;
+const std::string MODEL_PATH{ "./models/viking_room.obj" };
+const std::string TEXTURE_PATH{ "./textures/viking_room.png" };
 
-extern const int MAX_FRAMES_IN_FLIGHT;
+const int MAX_FRAMES_IN_FLIGHT{ 2 };
 
-extern const std::vector<const char*> validationLayers;
-extern const std::vector<const char*> deviceExtensions;
+const std::vector<const char*> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+
+const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
 
 #ifdef NDEBUG
-extern const bool enableValidationLayers;
+const bool enableValidationLayers = false;
 #else
-extern const bool enableValidationLayers;
+const bool enableValidationLayers = true;
 #endif
 
 // Structs
@@ -58,3 +63,5 @@ struct UniformBufferObject {
 
 // functions
 SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
+
+std::vector<char> readFile(const std::string& filename);

@@ -60,9 +60,6 @@ private:
 
 	Pipeline* m_pPipeline{};
 
-    //VkPipelineLayout pipelineLayout{};
-    //VkPipeline graphicsPipeline{};
-
     VkCommandPool commandPool{};
     
     uint32_t mipLevels{};

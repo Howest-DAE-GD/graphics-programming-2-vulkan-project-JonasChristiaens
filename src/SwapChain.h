@@ -34,6 +34,7 @@ public:
 
 private:
 	// private member variables
+
 	Device* m_pDevice;
 	Window* m_pWindow;
 	Surface* m_pSurface;
@@ -45,7 +46,7 @@ private:
 	std::vector<VkImageView> m_SwapChainImageViews{};
 	std::vector<VkFramebuffer> m_SwapChainFramebuffers{};
 
-	VkImage m_ColorImage{};
+	VkImage m_ColorImage{};                                                                                                                                                                                                                                                             
 	VkDeviceMemory m_ColorImageMemory{};
 	VkImageView m_ColorImageView{};
 

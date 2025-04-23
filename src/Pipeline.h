@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <string>
 
 class Device;
 class DescriptorSetLayout;
@@ -28,6 +27,5 @@ private:
 
 	// private member functions
 	void createGraphicsPipeline();
-	static std::vector<char> readFile(const std::string& filename);
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 };

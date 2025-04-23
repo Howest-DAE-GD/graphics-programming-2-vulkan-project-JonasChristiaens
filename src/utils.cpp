@@ -1,26 +1,8 @@
-#pragma once
 #include "pch.h"
 #include "utils.h"
 
-// Constants
-const std::string MODEL_PATH = "./models/viking_room.obj";
-const std::string TEXTURE_PATH = "./textures/viking_room.png";
-
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
-const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
+#include <fstream>
+#include <stdexcept>
 
 // Structs 
 bool QueueFamilyIndices::isComplete() const {
@@ -91,4 +73,23 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurface
     }
 
     return details;
+}
+
+std::vector<char> readFile(const std::string& filename) {
+    // Open the file in binary mode and move the file pointer to the end
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file: " + filename);
+    }
+
+    // Get the size of the file
+    size_t fileSize = static_cast<size_t>(file.tellg());
+    std::vector<char> buffer(fileSize);
+
+    // Move the file pointer to the beginning and read the file into the buffer
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+
+    file.close();
+    return buffer;
 }
