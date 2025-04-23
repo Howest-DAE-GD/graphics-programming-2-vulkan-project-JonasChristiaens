@@ -72,6 +72,7 @@ set(${PROJECT_NAME}_SOURCES
     "src/RenderPass.cpp"
     "src/DescriptorSetLayout.cpp"
     "src/Pipeline.cpp"
+    "src/CommandPool.cpp"
 )
 
 # Add the project executable

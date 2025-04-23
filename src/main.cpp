@@ -11,6 +11,7 @@
 #include "Renderpass.h"
 #include "DescriptorSetLayout.h"
 #include "Pipeline.h"
+#include "CommandPool.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -61,7 +62,8 @@ private:
 
 	Pipeline* m_pPipeline{};
 
-    VkCommandPool commandPool{};
+	CommandPool* m_pCommandPool{};
+    //VkCommandPool commandPool{};
     
     uint32_t mipLevels{};
     VkImage textureImage{};
@@ -101,11 +103,9 @@ private:
 		m_pDevice = new Device(m_pSurface, m_pInstance); // pickPhysicalDevice & createLogicalDevice
 		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface); // createSwapChain & createImageViews
         m_pRenderpass = new Renderpass(m_pDevice, m_pSwapChain); // createRenderPass
-
 		m_pDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
 		m_pPipeline = new Pipeline(m_pDevice, m_pDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
-        createCommandPool();
-
+		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
 		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
 
         createTextureImage();
@@ -166,9 +166,8 @@ private:
             vkDestroySemaphore(m_pDevice->getDevice(), imageAvailableSemaphores[i], nullptr);
             vkDestroyFence(m_pDevice->getDevice(), inFlightFences[i], nullptr);
         }
-
-        vkDestroyCommandPool(m_pDevice->getDevice(), commandPool, nullptr);
-
+        
+		delete m_pCommandPool;
         delete m_pPipeline;
 		delete m_pDescriptorSetLayout;
         delete m_pRenderpass;
@@ -177,22 +176,6 @@ private:
 		delete m_pSurface;
         delete m_pInstance;
         delete m_pWindow;
-    }
-
-    void createCommandPool()
-    {
-        QueueFamilyIndices queueFamilyIndices = m_pDevice->findQueueFamilies();
-
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-        if (vkCreateCommandPool(m_pDevice->getDevice(), &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create command pool!");
-        }
-
     }
 
     bool hasStencilComponent(VkFormat format) 
@@ -655,7 +638,7 @@ private:
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = commandPool;
+        allocInfo.commandPool = m_pCommandPool->getCommandPool();
         allocInfo.commandBufferCount = 1;
 
         VkCommandBuffer commandBuffer;
@@ -682,7 +665,7 @@ private:
         vkQueueSubmit(m_pDevice->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(m_pDevice->getGraphicsQueue());
 
-        vkFreeCommandBuffers(m_pDevice->getDevice(), commandPool, 1, &commandBuffer);
+        vkFreeCommandBuffers(m_pDevice->getDevice(), m_pCommandPool->getCommandPool(), 1, &commandBuffer);
     }
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) 
@@ -702,7 +685,7 @@ private:
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = commandPool;
+        allocInfo.commandPool = m_pCommandPool->getCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
