@@ -53,11 +53,9 @@ private:
 	Texture* m_pTexture{};
 
     std::vector<Vertex> vertices{};
+    Buffer* m_pVertexBuffer{};
     std::vector<uint32_t> indices{};
-    VkBuffer vertexBuffer{};
-    VkDeviceMemory vertexBufferMemory{};
-    VkBuffer indexBuffer{};
-    VkDeviceMemory indexBufferMemory{};
+    Buffer* m_pIndexBuffer{};
 
     std::vector<VkBuffer> uniformBuffers{};
     std::vector<VkDeviceMemory> uniformBuffersMemory{};
@@ -66,7 +64,7 @@ private:
     VkDescriptorPool descriptorPool{};
     std::vector<VkDescriptorSet> descriptorSets{};
 
-    std::vector<VkCommandBuffer> commandBuffers{};
+    std::vector<VkCommandBuffer> commandBuffers{}; // niet in buffer, werkt seperately
 
     std::vector<VkSemaphore> imageAvailableSemaphores{};
     std::vector<VkSemaphore> renderFinishedSemaphores{};
@@ -90,8 +88,15 @@ private:
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool); // createTextureImage, createTextureImageView, createTextureSampler
 
         loadModel();
-        createVertexBuffer();
-        createIndexBuffer();
+
+        // createVertexBuffer
+        m_pVertexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        m_pVertexBuffer->CreateStagingBuffer(sizeof(vertices[0]) * vertices.size(), vertices.data()); 
+
+        // createIndexBuffer
+        m_pIndexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        m_pIndexBuffer->CreateStagingBuffer(sizeof(indices[0]) * indices.size(), indices.data()); 
+
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -124,13 +129,8 @@ private:
 
         vkDestroyDescriptorPool(m_pDevice->getDevice(), descriptorPool, nullptr);
 		m_pDescriptorSetLayout->cleanupDescriptorSetLayout();
-
-        vkDestroyBuffer(m_pDevice->getDevice(), indexBuffer, nullptr);
-        vkFreeMemory(m_pDevice->getDevice(), indexBufferMemory, nullptr);
-
-        vkDestroyBuffer(m_pDevice->getDevice(), vertexBuffer, nullptr);
-        vkFreeMemory(m_pDevice->getDevice(), vertexBufferMemory, nullptr);
-
+        m_pIndexBuffer->cleanupBuffer();
+        m_pVertexBuffer->cleanupBuffer();
         m_pPipeline->cleanupPipelines();
 		m_pRenderpass->cleanupRenderPass();
 
@@ -148,6 +148,8 @@ private:
         m_pWindow->cleanupWindow();
 
         // delete Pointers
+        delete m_pVertexBuffer;
+        delete m_pIndexBuffer;
         delete m_pTexture;
 		delete m_pCommandPool;
         delete m_pPipeline;
@@ -158,6 +160,9 @@ private:
 		delete m_pSurface;
         delete m_pInstance;
         delete m_pWindow;
+
+
+        // -> deletionqueue is best for this, 
     }
 
     bool hasStencilComponent(VkFormat format) 
@@ -218,47 +223,6 @@ private:
                 indices.push_back(uniqueVertices[vertex]);
             }
         }
-    }
-
-    void createVertexBuffer()
-    {
-        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-        VkBuffer stagingBuffer{};
-        VkDeviceMemory stagingBufferMemory{};
-        Buffer::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, m_pDevice);
-
-        void* data;
-        vkMapMemory(m_pDevice->getDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(m_pDevice->getDevice(), stagingBufferMemory);
-
-        Buffer::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory, m_pDevice);
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-        vkDestroyBuffer(m_pDevice->getDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
-    }
-
-    void createIndexBuffer()
-    {
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        Buffer::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, m_pDevice);
-
-        void* data;
-        vkMapMemory(m_pDevice->getDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(m_pDevice->getDevice(), stagingBufferMemory);
-
-        Buffer::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, m_pDevice);
-
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-        vkDestroyBuffer(m_pDevice->getDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
     }
 
     // Function that allocates the buffers
@@ -356,17 +320,6 @@ private:
         }
     }
 
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) 
-    {
-        VkCommandBuffer commandBuffer = Commands::beginSingleTimeCommands(m_pCommandPool, m_pDevice);
-
-        VkBufferCopy copyRegion{};
-        copyRegion.size = size;
-        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-        Commands::endSingleTimeCommands(commandBuffer, m_pCommandPool, m_pDevice);
-    }
-
     void createCommandBuffers()
     {
         commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -421,11 +374,11 @@ private:
             scissor.extent = m_pSwapChain->getExtent();
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-            VkBuffer vertexBuffers[] = { vertexBuffer };
+            VkBuffer vertexBuffers[] = { m_pVertexBuffer->getBuffer() };
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(commandBuffer, m_pIndexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);

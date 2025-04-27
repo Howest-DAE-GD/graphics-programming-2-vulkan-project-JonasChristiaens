@@ -29,7 +29,7 @@ private:
 	VkDeviceMemory m_ColorImageMemory{};
 	VkImageView m_ColorImageView{};
 
-	VkImage m_DepthImage{};
+	VkImage m_DepthImage{}; // niet in image
 	VkDeviceMemory m_DepthImageMemory{};
 	VkImageView m_DepthImageView{};
 
