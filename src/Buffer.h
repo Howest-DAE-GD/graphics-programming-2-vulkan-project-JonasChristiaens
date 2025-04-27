@@ -10,8 +10,8 @@ public:
 	~Buffer() = default;
 
 	// public member functions
-	const VkBuffer& getBuffer() const { return m_Buffer; }
-	const VkDeviceMemory getBufferMemory() const { return m_BufferMemory; }
+	VkBuffer& getBuffer() { return m_Buffer; }
+	VkDeviceMemory& getBufferMemory() { return m_BufferMemory; }
 
 	void CreateStagingBuffer(VkDeviceSize buffersize, const void* srcData);
 	static void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, Device* device);
