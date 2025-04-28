@@ -36,36 +36,29 @@ private:
     // =======================
     // Private class variables
     // =======================
-    Window* m_pWindow{};
+    Window* m_pWindow = nullptr;
 
-    Instance* m_pInstance{};
-	Surface* m_pSurface{};
+    Instance* m_pInstance = nullptr;
+	Surface* m_pSurface = nullptr;
+	Device* m_pDevice = nullptr;
+    SwapChain* m_pSwapChain = nullptr;
+    Renderpass* m_pRenderpass = nullptr;
+	DescriptorSetLayout* m_pDescriptorSetLayout = nullptr;
+	Pipeline* m_pPipeline = nullptr;
+	CommandPool* m_pCommandPool = nullptr;
+	Texture* m_pTexture = nullptr;
 
-	Device* m_pDevice{};
-
-    SwapChain* m_pSwapChain{};
-
-	Renderpass* m_pRenderpass{}; 
-	DescriptorSetLayout* m_pDescriptorSetLayout{};
-	Pipeline* m_pPipeline{};
-
-	CommandPool* m_pCommandPool{};
-
-	Texture* m_pTexture{};
-
-    std::vector<Vertex> vertices{};
-    Buffer* m_pVertexBuffer{};
-    std::vector<uint32_t> indices{};
-    Buffer* m_pIndexBuffer{};
+    std::vector<Vertex> m_vertices{};
+    Buffer* m_pVertexBuffer = nullptr;
+    std::vector<uint32_t> m_indices{};
+    Buffer* m_pIndexBuffer = nullptr;;
 
     std::vector<Buffer*> m_pUniformBuffers{};
     std::vector<void*> m_UniformBuffersMapped{};
 
-    DescriptorPool* m_pDescriptor{};
-
-    CommandBuffer* m_pCommandBuffer{};
-
-    SceneManager* m_pSceneManager{};
+    DescriptorPool* m_pDescriptorPool = nullptr;
+    CommandBuffer* m_pCommandBuffer = nullptr;
+    SceneManager* m_pSceneManager = nullptr;
 
     // =======================
     // Private class Functions
@@ -83,21 +76,21 @@ private:
 		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool); // createTextureImage, createTextureImageView, createTextureSampler
         m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain, m_pRenderpass);
-        m_pSceneManager->loadModel(vertices, indices); // loadModel
+        m_pSceneManager->loadModel(m_vertices, m_indices); // loadModel
 
         // createVertexBuffer
         m_pVertexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-        m_pVertexBuffer->CreateStagingBuffer(sizeof(vertices[0]) * vertices.size(), vertices.data()); 
+        m_pVertexBuffer->CreateStagingBuffer(sizeof(m_vertices[0]) * m_vertices.size(), m_vertices.data());
 
         // createIndexBuffer
         m_pIndexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        m_pIndexBuffer->CreateStagingBuffer(sizeof(indices[0]) * indices.size(), indices.data()); 
+        m_pIndexBuffer->CreateStagingBuffer(sizeof(m_indices[0]) * m_indices.size(), m_indices.data());
 
         createUniformBuffers();
 
-        m_pDescriptor = new DescriptorPool(m_pDevice, m_pTexture, m_pDescriptorSetLayout, m_pUniformBuffers); // createDescriptorPool & createDescriptorSets
+        m_pDescriptorPool = new DescriptorPool(m_pDevice, m_pTexture, m_pDescriptorSetLayout, m_pUniformBuffers); // createDescriptorPool & createDescriptorSets
         
-        m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pRenderpass, m_pSwapChain, m_pPipeline, m_pVertexBuffer, m_pIndexBuffer, m_pDescriptor, m_pSceneManager);
+        m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pRenderpass, m_pSwapChain, m_pPipeline, m_pVertexBuffer, m_pIndexBuffer, m_pDescriptorPool, m_pSceneManager);
         m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects
     }
@@ -107,7 +100,7 @@ private:
 		// Loop until the user closes the window
         while (!m_pWindow->shouldClose()) {
             m_pWindow->pollEvents();
-            m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, indices);
+            m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_indices);
         }
 
         vkDeviceWaitIdle(m_pDevice->getDevice());
@@ -119,12 +112,11 @@ private:
         m_pSwapChain->cleanupSwapChain();
         m_pTexture->cleanupTextures();
 
-        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++)
-        {
+        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
             m_pUniformBuffers[idx]->cleanupBuffer();
         }
 
-        m_pDescriptor->cleanupDescriptorPool();
+        m_pDescriptorPool->cleanupDescriptorPool();
 		m_pDescriptorSetLayout->cleanupDescriptorSetLayout();
         m_pIndexBuffer->cleanupBuffer();
         m_pVertexBuffer->cleanupBuffer();
@@ -140,11 +132,10 @@ private:
 
         // delete Pointers
         delete m_pSceneManager;
-        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++)
-        {
+        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
             delete m_pUniformBuffers[idx];
         }
-        delete m_pDescriptor;
+        delete m_pDescriptorPool;
         delete m_pVertexBuffer;
         delete m_pIndexBuffer;
         delete m_pTexture;
@@ -156,10 +147,7 @@ private:
         delete m_pDevice;
 		delete m_pSurface;
         delete m_pInstance;
-        delete m_pWindow;
-
-
-        // -> deletionqueue is best for this, 
+        delete m_pWindow; 
     }
 
     bool hasStencilComponent(VkFormat format) 

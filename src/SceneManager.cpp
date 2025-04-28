@@ -21,7 +21,7 @@ SceneManager::SceneManager(Device* device, SwapChain* spawChain, Renderpass* ren
 {
 }
 
-void SceneManager::loadModel(std::vector<Vertex> vertices, std::vector<uint32_t> indices)
+void SceneManager::loadModel(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;

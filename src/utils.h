@@ -63,5 +63,4 @@ struct UniformBufferObject {
 
 // functions
 SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
-
 std::vector<char> readFile(const std::string& filename);
