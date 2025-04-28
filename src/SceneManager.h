@@ -18,7 +18,7 @@ public:
 	uint32_t getCurrentFrame() const { return m_CurrentFrame; }
 
 	void loadModel(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
-	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers);
+	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, std::vector<uint32_t> indices);
 	void createSyncObjects();
 
 	void cleanupScene();

@@ -12,9 +12,17 @@
 #include "SceneManager.h"
 #include <stdexcept>
 
-CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool)
+CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, Renderpass* renderpass, SwapChain* swapChain, Pipeline* pipeline, Buffer* vertexBuffer,
+    Buffer* indexBuffer, DescriptorPool* descriptor, SceneManager* sceneManager)
 	: m_pDevice(device)
 	, m_pCommandPool(commandPool)
+    , m_pRenderpass(renderpass)
+    , m_pSwapChain(swapChain)
+    , m_pPipeline(pipeline)
+    , m_pVertexBuffer(vertexBuffer)
+    , m_pIndexBuffer(indexBuffer)
+    , m_pDescriptorPool(descriptor)
+    , m_pSceneManager(sceneManager)
 {
 }
 
@@ -33,7 +41,7 @@ void CommandBuffer::createCommandBuffers()
 	}
 }
 
-void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, Renderpass* renderpass, SwapChain* swapChain, Pipeline* pipeline, Buffer* vertexBuffer, Buffer* indexBuffer, DescriptorPool* descriptor, SceneManager* sceneManager, std::vector<uint32_t> indices)
+void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<uint32_t> indices)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -43,10 +51,10 @@ void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderpass->getRenderPass();
-    renderPassInfo.framebuffer = swapChain->getFramebuffers()[imageIndex];
+    renderPassInfo.renderPass = m_pRenderpass->getRenderPass();
+    renderPassInfo.framebuffer = m_pSwapChain->getFramebuffers()[imageIndex];
     renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = swapChain->getExtent();
+    renderPassInfo.renderArea.extent = m_pSwapChain->getExtent();
 
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
@@ -56,29 +64,29 @@ void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getGraphicsPipeline());
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getGraphicsPipeline());
 
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(swapChain->getExtent().width);
-    viewport.height = static_cast<float>(swapChain->getExtent().height);
+    viewport.width = static_cast<float>(m_pSwapChain->getExtent().width);
+    viewport.height = static_cast<float>(m_pSwapChain->getExtent().height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor{};
     scissor.offset = { 0, 0 };
-    scissor.extent = swapChain->getExtent();
+    scissor.extent = m_pSwapChain->getExtent();
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkBuffer vertexBuffers[] = { vertexBuffer->getBuffer() };
+    VkBuffer vertexBuffers[] = { m_pVertexBuffer->getBuffer() };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(commandBuffer, m_pIndexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 0, 1, &descriptor->getDescriptorSets()[sceneManager->getCurrentFrame()], 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &m_pDescriptorPool->getDescriptorSets()[m_pSceneManager->getCurrentFrame()], 0, nullptr);
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);

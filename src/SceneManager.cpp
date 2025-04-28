@@ -61,7 +61,7 @@ void SceneManager::loadModel(std::vector<Vertex> vertices, std::vector<uint32_t>
     }
 }
 
-void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers)
+void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, std::vector<uint32_t> indices)
 {
     vkWaitForFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
@@ -80,7 +80,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     vkResetFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
 
     vkResetCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], 0);
-    commandBuffers->recordCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex);
+    commandBuffers->recordCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, indices);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
