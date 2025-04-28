@@ -1,9 +1,12 @@
 #pragma once
 
+#include <vector>
+
 class Device;
 class SwapChain;
 class Renderpass;
 class Window;
+class CommandBuffer;
 class SceneManager
 {
 public:
@@ -15,7 +18,7 @@ public:
 	uint32_t getCurrentFrame() const { return m_CurrentFrame; }
 
 	void loadModel(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
-	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped);
+	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers);
 	void createSyncObjects();
 
 	void cleanupScene();

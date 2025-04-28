@@ -17,7 +17,10 @@
 #include "Buffer.h"
 #include "DescriptorPool.h"
 #include "SceneManager.h"
+#include "CommandBuffer.h"
+
 #include <stdexcept>
+#include <iostream>
 
 class HelloTriangleApplication {
 public:
@@ -60,7 +63,7 @@ private:
 
     DescriptorPool* m_pDescriptor{};
 
-    std::vector<VkCommandBuffer> commandBuffers{}; // niet in buffer, werkt seperately
+    CommandBuffer* m_pCommandBuffer{};
 
     SceneManager* m_pSceneManager{};
 
@@ -79,6 +82,7 @@ private:
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
 		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool); // createTextureImage, createTextureImageView, createTextureSampler
+        m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain, m_pRenderpass);
         m_pSceneManager->loadModel(vertices, indices); // loadModel
 
         // createVertexBuffer
@@ -93,7 +97,7 @@ private:
 
         m_pDescriptor = new DescriptorPool(m_pDevice, m_pTexture, m_pDescriptorSetLayout, m_pUniformBuffers); // createDescriptorPool & createDescriptorSets
 
-        createCommandBuffers();
+        m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects
     }
 
@@ -102,7 +106,7 @@ private:
 		// Loop until the user closes the window
         while (!m_pWindow->shouldClose()) {
             m_pWindow->pollEvents();
-            m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped);
+            m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer);
         }
 
         vkDeviceWaitIdle(m_pDevice->getDevice());
@@ -193,76 +197,6 @@ private:
             // mapping of buffer to get a pointer to which we can write data
             // => persistent mapping
             vkMapMemory(m_pDevice->getDevice(), m_pUniformBuffers[idx]->getBufferMemory(), 0, bufferSize, 0, &m_UniformBuffersMapped[idx]);
-        }
-    }
-
-    void createCommandBuffers()
-    {
-        commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = m_pCommandPool->getCommandPool();
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
-
-        if (vkAllocateCommandBuffers(m_pDevice->getDevice(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
-    }
-
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) 
-    {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) 
-            throw std::runtime_error("failed to begin recording command buffer!");
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_pRenderpass->getRenderPass();
-        renderPassInfo.framebuffer = m_pSwapChain->getFramebuffers()[imageIndex];
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = m_pSwapChain->getExtent();
-
-        std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-        clearValues[1].depthStencil = { 1.0f, 0 };
-
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-
-        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getGraphicsPipeline());
-
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = static_cast<float>(m_pSwapChain->getExtent().width);
-            viewport.height = static_cast<float>(m_pSwapChain->getExtent().height);
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-            VkRect2D scissor{};
-            scissor.offset = { 0, 0 };
-            scissor.extent = m_pSwapChain->getExtent();
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-            VkBuffer vertexBuffers[] = { m_pVertexBuffer->getBuffer() };
-            VkDeviceSize offsets[] = { 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
-            vkCmdBindIndexBuffer(commandBuffer, m_pIndexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &m_pDescriptor->getDescriptorSets()[m_pSceneManager->getCurrentFrame()], 0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
-        vkCmdEndRenderPass(commandBuffer);
-
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
         }
     }
 };

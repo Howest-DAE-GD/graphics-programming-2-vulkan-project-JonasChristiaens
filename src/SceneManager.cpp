@@ -1,10 +1,12 @@
 #include "pch.h"
+#include "utils.h"
 #include "SceneManager.h"
 
 #include "Device.h"
 #include "SwapChain.h"
 #include "RenderPass.h"
 #include "Window.h"
+#include "CommandBuffer.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -59,7 +61,7 @@ void SceneManager::loadModel(std::vector<Vertex> vertices, std::vector<uint32_t>
     }
 }
 
-void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped)
+void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers)
 {
     vkWaitForFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
@@ -77,8 +79,8 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
 
     vkResetFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
 
-    vkResetCommandBuffer(commandBuffers[m_CurrentFrame], 0);
-    recordCommandBuffer(commandBuffers[m_CurrentFrame], imageIndex);
+    vkResetCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], 0);
+    commandBuffers->recordCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -89,7 +91,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[m_CurrentFrame];
+    submitInfo.pCommandBuffers = &commandBuffers->getCommandBuffers()[m_CurrentFrame];
 
     VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
     submitInfo.signalSemaphoreCount = 1;
