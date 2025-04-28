@@ -9,28 +9,37 @@ class Device
 public:
 	// constructor & destructor
 	Device(Surface* surface, Instance* instance);
-	~Device() = default;
+	~Device();
+
+	// Delete copy constructor and copy assignment operator
+	Device(const Device&) = delete;
+	Device& operator=(const Device&) = delete;
+
+	// Move constructor and move assignment operator
+	Device(Device&& other) noexcept;
+	Device& operator=(Device&& other) noexcept;
 
 	// public member functions
-	VkDevice getDevice() const { return m_Device; }
-	VkPhysicalDevice getPhysicalDevice() const { return m_PhysicalDevice; }
-	VkSampleCountFlagBits getMsaaSamples() const { return m_MsaaSamples; }
-	VkQueue getGraphicsQueue() const { return m_GraphicsQueue; }
-	VkQueue getPresentQueue() const { return m_PresentQueue; }
+	VkDevice getDevice() const { return m_device; }
+	VkPhysicalDevice getPhysicalDevice() const { return m_physicalDevice; }
+	VkSampleCountFlagBits getMsaaSamples() const { return m_msaaSamples; }
+	VkQueue getGraphicsQueue() const { return m_graphicsQueue; }
+	VkQueue getPresentQueue() const { return m_presentQueue; }
 
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 	QueueFamilyIndices findQueueFamilies();
 	void cleanupDevice();
 private:
 	// private member variables
-	Surface* m_Surface;
-	Instance* m_Instance;
+	Surface* m_pSurface = nullptr;
+	Instance* m_pInstance = nullptr;
 
-	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-	VkSampleCountFlagBits m_MsaaSamples = VK_SAMPLE_COUNT_1_BIT;
-	VkDevice m_Device{};
-	VkQueue m_GraphicsQueue{};
-	VkQueue m_PresentQueue{};
+	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+	VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+	VkDevice m_device = VK_NULL_HANDLE;
+	VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+	VkQueue m_presentQueue = VK_NULL_HANDLE;
+
 
 	// private member functions
 	void pickPhysicalDevice();

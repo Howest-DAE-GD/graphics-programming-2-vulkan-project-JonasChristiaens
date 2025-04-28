@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Instance.h"
 #include "utils.h"
+
 #include <iostream>
 #include <stdexcept>
 
@@ -10,25 +11,51 @@ Instance::Instance()
     setupDebugMessenger(validationLayers);
 }
 
-VkInstance Instance::getInstance() const
+Instance::~Instance()
 {
-    return m_Instance;
+    destroyDebugUtilsMessenger();
+    destroyInstance();
 }
-VkDebugUtilsMessengerEXT Instance::getDebugMessenger() const
+
+Instance::Instance(Instance&& other) noexcept
+    : m_instance(other.m_instance)
+    , m_debugMessenger(other.m_debugMessenger) 
 {
-    return m_DebugMessenger;
+    other.m_instance = VK_NULL_HANDLE;
+    other.m_debugMessenger = VK_NULL_HANDLE;
+}
+
+Instance& Instance::operator=(Instance&& other) noexcept
+{
+    if (this != &other) 
+    {
+        destroyDebugUtilsMessenger();
+        destroyInstance();
+
+        m_instance = other.m_instance;
+        m_debugMessenger = other.m_debugMessenger;
+
+        other.m_instance = VK_NULL_HANDLE;
+        other.m_debugMessenger = VK_NULL_HANDLE;
+    }
+
+    return *this;
 }
 
 void Instance::destroyDebugUtilsMessenger()
 {
     if (enableValidationLayers) {
-        DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+        destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
     }
 }
 
 void Instance::destroyInstance()
 {
-    vkDestroyInstance(m_Instance, nullptr); // vulkan instance
+    if (m_instance != VK_NULL_HANDLE) 
+    {
+        vkDestroyInstance(m_instance, nullptr); // vulkan instance
+        m_instance = VK_NULL_HANDLE;
+    }
 }
 
 void Instance::createInstance()
@@ -67,11 +94,10 @@ void Instance::createInstance()
     }
     else {
         createInfo.enabledLayerCount = 0;
-
         createInfo.pNext = nullptr;
     }
 
-    if (vkCreateInstance(&createInfo, nullptr, &m_Instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS) {
         throw std::runtime_error("failed to create instance!");
     }
 }
@@ -125,7 +151,7 @@ void Instance::setupDebugMessenger(const std::vector<const char*>& validationLay
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
-    if (CreateDebugUtilsMessengerEXT(m_Instance, &createInfo, nullptr, &m_DebugMessenger) != VK_SUCCESS) {
+    if (createDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS) {
         throw std::runtime_error("failed to set up debug messenger!");
     }
 }
@@ -141,7 +167,7 @@ void Instance::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoE
     createInfo.pfnUserCallback = debugCallback;
 }
 
-VkResult Instance::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+VkResult Instance::createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr) {
@@ -151,7 +177,7 @@ VkResult Instance::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDeb
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
-void Instance::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+void Instance::destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
 {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr) {

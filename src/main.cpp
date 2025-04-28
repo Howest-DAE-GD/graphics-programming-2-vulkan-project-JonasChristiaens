@@ -160,7 +160,6 @@ private:
     {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-        m_pUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
         m_UniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
         for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++)
