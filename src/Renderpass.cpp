@@ -90,5 +90,8 @@ void Renderpass::createRenderPass()
 
 void Renderpass::cleanupRenderPass()
 {
-    vkDestroyRenderPass(m_pDevice->getDevice(), m_RenderPass, nullptr);
+    if (m_RenderPass != VK_NULL_HANDLE) {
+        vkDestroyRenderPass(m_pDevice->getDevice(), m_RenderPass, nullptr);
+        m_RenderPass = VK_NULL_HANDLE;
+    }
 }

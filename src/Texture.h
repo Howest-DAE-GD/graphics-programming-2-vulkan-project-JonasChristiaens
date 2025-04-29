@@ -23,15 +23,15 @@ public:
 
 private:
 	// private member variables
-	Device* m_pDevice{};
-	SwapChain* m_pSwapChain{};
-	CommandPool* m_pCommandPool{};
+	Device* m_pDevice = nullptr;
+	SwapChain* m_pSwapChain = nullptr;
+	CommandPool* m_pCommandPool = nullptr;
 
-	VkImage m_TextureImage{};
-	VkDeviceMemory m_TextureImageMemory{};
-	VkImageView m_TextureImageView{};
-	VkSampler m_TextureSampler{};
-	uint32_t m_MipLevels{};
+	VkImage m_TextureImage = VK_NULL_HANDLE;
+	VkDeviceMemory m_TextureImageMemory = VK_NULL_HANDLE;
+	VkImageView m_TextureImageView = VK_NULL_HANDLE;
+	VkSampler m_TextureSampler = VK_NULL_HANDLE;
+	uint32_t m_MipLevels = 0;
 
 	// private member functions
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);

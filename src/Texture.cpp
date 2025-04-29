@@ -92,11 +92,22 @@ void Texture::createTextureSampler()
 
 void Texture::cleanupTextures()
 {
-    vkDestroySampler(m_pDevice->getDevice(), m_TextureSampler, nullptr);
-    vkDestroyImageView(m_pDevice->getDevice(), m_TextureImageView, nullptr);
-
-    vkDestroyImage(m_pDevice->getDevice(), m_TextureImage, nullptr);
-    vkFreeMemory(m_pDevice->getDevice(), m_TextureImageMemory, nullptr);
+    if (m_TextureSampler != VK_NULL_HANDLE) {
+        vkDestroySampler(m_pDevice->getDevice(), m_TextureSampler, nullptr);
+        m_TextureSampler = VK_NULL_HANDLE;
+    }
+    if (m_TextureImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_pDevice->getDevice(), m_TextureImageView, nullptr);
+        m_TextureImageView = VK_NULL_HANDLE;
+    }
+    if (m_TextureImage != VK_NULL_HANDLE) {
+        vkDestroyImage(m_pDevice->getDevice(), m_TextureImage, nullptr);
+        m_TextureImage = VK_NULL_HANDLE;
+    }
+    if (m_TextureImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_pDevice->getDevice(), m_TextureImageMemory, nullptr);
+        m_TextureImageMemory = VK_NULL_HANDLE;
+    }
 }
 
 void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)

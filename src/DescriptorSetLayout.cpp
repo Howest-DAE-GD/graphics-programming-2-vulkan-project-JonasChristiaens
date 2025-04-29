@@ -12,7 +12,10 @@ DescriptorSetLayout::DescriptorSetLayout(Device* device)
 
 void DescriptorSetLayout::cleanupDescriptorSetLayout()
 {
-    vkDestroyDescriptorSetLayout(m_pDevice->getDevice(), m_DescriptorSetLayout, nullptr);
+    if (m_DescriptorSetLayout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(m_pDevice->getDevice(), m_DescriptorSetLayout, nullptr);
+        m_DescriptorSetLayout = VK_NULL_HANDLE;
+    }
 }
 
 // Provide details about every descriptor binding used in shaders for pipeline creation

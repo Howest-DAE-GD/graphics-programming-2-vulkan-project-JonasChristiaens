@@ -18,12 +18,12 @@ public:
 
 private:
 	// private member variables
-	Device* m_pDevice{};
-	DescriptorSetLayout* m_pDescriptorSetLayout{};
-	Renderpass* m_pRenderpass{};
+	Device* m_pDevice = nullptr;
+	DescriptorSetLayout* m_pDescriptorSetLayout = nullptr;
+	Renderpass* m_pRenderpass = nullptr;
 
-	VkPipelineLayout m_PipelineLayout{};
-	VkPipeline m_GraphicsPipeline{};
+	VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+	VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;
 
 	// private member functions
 	void createGraphicsPipeline();

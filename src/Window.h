@@ -6,15 +6,7 @@ class Window
 public:
 	// constructor & destructor
 	explicit Window(const std::string& title);
-	~Window();
-
-	// Delete copy constructor and copy assignment operator
-	Window(const Window&) = delete;
-	Window& operator=(const Window&) = delete;
-
-	// Move constructor and move assignment operator
-	Window(Window&& other) noexcept;
-	Window& operator=(Window&& other) noexcept;
+	~Window() = default;
 
 	// public member functions
 	void pollEvents() const;

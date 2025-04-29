@@ -27,34 +27,6 @@ Window::Window(const std::string& title)
     glfwSetFramebufferSizeCallback(m_pWindow, framebufferResizeCallback);
 }
 
-Window::~Window()
-{
-    cleanupWindow();
-}
-
-Window::Window(Window&& other) noexcept
-    : m_pWindow(other.m_pWindow)
-    , m_title(std::move(other.m_title))
-    , m_framebufferResized(other.m_framebufferResized)
-{
-    other.m_pWindow = nullptr;
-}
-
-Window& Window::operator=(Window&& other) noexcept
-{
-    if (this != &other)
-    {
-        cleanupWindow();
-
-        m_pWindow = other.m_pWindow;
-        m_title = std::move(other.m_title);
-        m_framebufferResized = other.m_framebufferResized;
-
-        other.m_pWindow = nullptr;
-    }
-    return *this;
-}
-
 void Window::pollEvents() const
 {
     glfwPollEvents();

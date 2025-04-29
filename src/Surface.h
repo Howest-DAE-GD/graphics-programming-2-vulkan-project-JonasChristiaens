@@ -6,15 +6,7 @@ class Surface
 public:
 	// constructor & destructor
 	Surface(Instance* instance, GLFWwindow* window);
-	~Surface();
-
-	// Delete copy constructor and copy assignment operator
-	Surface(const Surface&) = delete;
-	Surface& operator=(const Surface&) = delete;
-
-	// Move constructor and move assignment operator
-	Surface(Surface&& other) noexcept;
-	Surface& operator=(Surface&& other) noexcept;
+	~Surface() = default;
 
 	// public member functions
 	VkSurfaceKHR getSurface() const { return m_surface; }

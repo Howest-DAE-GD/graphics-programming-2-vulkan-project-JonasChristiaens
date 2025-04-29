@@ -18,8 +18,14 @@ Pipeline::Pipeline(Device* device, DescriptorSetLayout* descriptorSetLayout, Ren
 
 void Pipeline::cleanupPipelines()
 {
-    vkDestroyPipeline(m_pDevice->getDevice(), m_GraphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(m_pDevice->getDevice(), m_PipelineLayout, nullptr);
+    if (m_GraphicsPipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(m_pDevice->getDevice(), m_GraphicsPipeline, nullptr);
+        m_GraphicsPipeline = VK_NULL_HANDLE;
+    }
+    if (m_PipelineLayout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(m_pDevice->getDevice(), m_PipelineLayout, nullptr);
+        m_PipelineLayout = VK_NULL_HANDLE;
+    }
 }
 
 void Pipeline::createGraphicsPipeline()
@@ -104,6 +110,7 @@ void Pipeline::createGraphicsPipeline()
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
     };
+
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
@@ -135,7 +142,6 @@ void Pipeline::createGraphicsPipeline()
     pipelineInfo.renderPass = m_pRenderpass->getRenderPass();
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
 
     if (vkCreateGraphicsPipelines(m_pDevice->getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) != VK_SUCCESS)
     {

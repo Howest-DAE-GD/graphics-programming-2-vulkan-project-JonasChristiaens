@@ -14,52 +14,6 @@ Device::Device(Surface* surface, Instance* instance)
 	createLogicalDevice();
 }
 
-Device::~Device()
-{
-    cleanupDevice();
-}
-
-Device::Device(Device&& other) noexcept
-    : m_pSurface(other.m_pSurface)
-    , m_pInstance(other.m_pInstance)
-    , m_physicalDevice(other.m_physicalDevice)
-    , m_msaaSamples(other.m_msaaSamples)
-    , m_device(other.m_device)
-    , m_graphicsQueue(other.m_graphicsQueue)
-    , m_presentQueue(other.m_presentQueue) 
-{
-    other.m_pSurface = nullptr;
-    other.m_pInstance = nullptr;
-    other.m_physicalDevice = VK_NULL_HANDLE;
-    other.m_device = VK_NULL_HANDLE;
-    other.m_graphicsQueue = VK_NULL_HANDLE;
-    other.m_presentQueue = VK_NULL_HANDLE;
-}
-
-Device& Device::operator=(Device&& other) noexcept
-{
-    if (this != &other) {
-        cleanupDevice();
-
-        m_pSurface = other.m_pSurface;
-        m_pInstance = other.m_pInstance;
-        m_physicalDevice = other.m_physicalDevice;
-        m_msaaSamples = other.m_msaaSamples;
-        m_device = other.m_device;
-        m_graphicsQueue = other.m_graphicsQueue;
-        m_presentQueue = other.m_presentQueue;
-
-        other.m_pSurface = nullptr;
-        other.m_pInstance = nullptr;
-        other.m_physicalDevice = VK_NULL_HANDLE;
-        other.m_device = VK_NULL_HANDLE;
-        other.m_graphicsQueue = VK_NULL_HANDLE;
-        other.m_presentQueue = VK_NULL_HANDLE;
-    }
-
-    return *this;
-}
-
 void Device::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;

@@ -9,15 +9,7 @@ class Device
 public:
 	// constructor & destructor
 	Device(Surface* surface, Instance* instance);
-	~Device();
-
-	// Delete copy constructor and copy assignment operator
-	Device(const Device&) = delete;
-	Device& operator=(const Device&) = delete;
-
-	// Move constructor and move assignment operator
-	Device(Device&& other) noexcept;
-	Device& operator=(Device&& other) noexcept;
+	~Device() = default;
 
 	// public member functions
 	VkDevice getDevice() const { return m_device; }

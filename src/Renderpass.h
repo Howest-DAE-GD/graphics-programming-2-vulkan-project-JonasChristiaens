@@ -16,7 +16,7 @@ public:
 	void cleanupRenderPass();
 private:
 	// private member variables
-	Device* m_pDevice{};
-	SwapChain* m_pSwapChain{};
-	VkRenderPass m_RenderPass{};
+	Device* m_pDevice = nullptr;
+	SwapChain* m_pSwapChain = nullptr;
+	VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 };

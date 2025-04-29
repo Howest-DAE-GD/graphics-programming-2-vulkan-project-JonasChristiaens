@@ -6,15 +6,7 @@ class Instance
 public:
 	// constructor & destructor
 	Instance();
-	~Instance();
-
-	// Delete copy constructor and copy assignment operator
-	Instance(const Instance&) = delete;
-	Instance& operator=(const Instance&) = delete;
-
-	// Move constructor and move assignment operator
-	Instance(Instance&& other) noexcept;
-	Instance& operator=(Instance&& other) noexcept;
+	~Instance() = default;
 
 	// public member functions
 	VkInstance getInstance() const { return m_instance; }

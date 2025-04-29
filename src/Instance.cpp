@@ -11,37 +11,6 @@ Instance::Instance()
     setupDebugMessenger(validationLayers);
 }
 
-Instance::~Instance()
-{
-    destroyDebugUtilsMessenger();
-    destroyInstance();
-}
-
-Instance::Instance(Instance&& other) noexcept
-    : m_instance(other.m_instance)
-    , m_debugMessenger(other.m_debugMessenger) 
-{
-    other.m_instance = VK_NULL_HANDLE;
-    other.m_debugMessenger = VK_NULL_HANDLE;
-}
-
-Instance& Instance::operator=(Instance&& other) noexcept
-{
-    if (this != &other) 
-    {
-        destroyDebugUtilsMessenger();
-        destroyInstance();
-
-        m_instance = other.m_instance;
-        m_debugMessenger = other.m_debugMessenger;
-
-        other.m_instance = VK_NULL_HANDLE;
-        other.m_debugMessenger = VK_NULL_HANDLE;
-    }
-
-    return *this;
-}
-
 void Instance::destroyDebugUtilsMessenger()
 {
     if (enableValidationLayers) {

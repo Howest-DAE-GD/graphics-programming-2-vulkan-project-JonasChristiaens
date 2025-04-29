@@ -12,7 +12,10 @@ CommandPool::CommandPool(Device* device)
 
 void CommandPool::destroyCommandPool()
 {
-    vkDestroyCommandPool(m_pDevice->getDevice(), m_CommandPool, nullptr);
+    if (m_CommandPool != VK_NULL_HANDLE) {
+        vkDestroyCommandPool(m_pDevice->getDevice(), m_CommandPool, nullptr);
+        m_CommandPool = VK_NULL_HANDLE;
+    }
 }
 
 void CommandPool::createCommandPool()

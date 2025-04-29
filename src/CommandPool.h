@@ -7,16 +7,15 @@ public:
 	// constructor & destructor
 	CommandPool(Device* device);
 	~CommandPool() = default;
-	
+
 	// public member functions
 	VkCommandPool getCommandPool() const { return m_CommandPool; }
-
 	void destroyCommandPool();
 
 private:
 	// private member variables
-	Device* m_pDevice{};
-	VkCommandPool m_CommandPool{};
+	Device* m_pDevice = nullptr;
+	VkCommandPool m_CommandPool = VK_NULL_HANDLE;
 
 	// private member functions
 	void createCommandPool();
