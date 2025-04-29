@@ -63,6 +63,7 @@ void SceneManager::loadModel(std::vector<Vertex>& vertices, std::vector<uint32_t
 
 void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, std::vector<uint32_t> indices)
 {
+    VkCommandBuffer rawCommandBuffer{ commandBuffers->getCommandBuffers()[m_CurrentFrame] };
     vkWaitForFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -91,7 +92,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers->getCommandBuffers()[m_CurrentFrame];
+    submitInfo.pCommandBuffers = &rawCommandBuffer;
 
     VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
     submitInfo.signalSemaphoreCount = 1;
