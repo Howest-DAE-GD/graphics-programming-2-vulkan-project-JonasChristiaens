@@ -64,6 +64,10 @@ void Device::createLogicalDevice()
     deviceFeatures.samplerAnisotropy = VK_TRUE;
     deviceFeatures.sampleRateShading = VK_TRUE; // enable sample shading feature for the device
 
+    VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2Features{};
+    synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
+    synchronization2Features.synchronization2 = VK_TRUE;
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
@@ -71,8 +75,7 @@ void Device::createLogicalDevice()
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
     createInfo.pEnabledFeatures = &deviceFeatures;
-
-    createInfo.enabledExtensionCount = 0;
+    createInfo.pNext = &synchronization2Features;
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -92,6 +95,7 @@ void Device::createLogicalDevice()
     vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
     vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
 }
+
 
 VkSampleCountFlagBits Device::getMaxUsableSampleCount()
 {
@@ -124,7 +128,9 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device)
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+    bool synchronization2Supported = checkSynchronization2Support(device);
+
+    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy && synchronization2Supported;
 }
 
 bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device)
@@ -142,6 +148,22 @@ bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device)
     }
 
     return requiredExtensions.empty();
+}
+
+bool Device::checkSynchronization2Support(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceFeatures2 deviceFeatures2{};
+    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+
+    VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2Features{};
+    synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
+    synchronization2Features.pNext = nullptr;
+
+    deviceFeatures2.pNext = &synchronization2Features;
+
+    vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2);
+
+    return synchronization2Features.synchronization2;
 }
 
 QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)

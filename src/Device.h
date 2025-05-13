@@ -40,4 +40,5 @@ private:
 
 	bool isDeviceSuitable(VkPhysicalDevice device);
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+	bool checkSynchronization2Support(VkPhysicalDevice device);
 };
