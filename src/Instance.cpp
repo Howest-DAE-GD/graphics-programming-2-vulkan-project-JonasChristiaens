@@ -104,6 +104,10 @@ std::vector<const char*> Instance::getRequiredExtensions()
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
+    if (!glfwExtensions || glfwExtensionCount == 0) {
+        throw std::runtime_error("GLFW failed to provide required Vulkan extensions.");
+    }
+
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     if (enableValidationLayers) {
@@ -117,7 +121,7 @@ void Instance::setupDebugMessenger(const std::vector<const char*>& validationLay
 {
     if (!enableValidationLayers) return;
 
-    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
     populateDebugMessengerCreateInfo(createInfo);
 
     if (createDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger) != VK_SUCCESS) {

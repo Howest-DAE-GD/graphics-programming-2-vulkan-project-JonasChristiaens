@@ -5,6 +5,7 @@
 
 #include <stdexcept>
 #include <set>
+#include <iostream>
 
 Device::Device(Surface* surface, Instance* instance)
 	: m_pSurface(surface)
@@ -17,12 +18,12 @@ Device::Device(Surface* surface, Instance* instance)
 void Device::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(m_pInstance->getInstance(), &deviceCount, nullptr);
+    VkResult result = vkEnumeratePhysicalDevices(m_pInstance->getInstance(), &deviceCount, nullptr);
 
-    if (deviceCount == 0)
-    {
+    if (result != VK_SUCCESS || deviceCount == 0) {
         throw std::runtime_error("Failed to find GPUs with Vulkan support!");
     }
+
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(m_pInstance->getInstance(), &deviceCount, devices.data());
@@ -31,6 +32,11 @@ void Device::pickPhysicalDevice()
         if (isDeviceSuitable(device)) {
             m_physicalDevice = device;
             m_msaaSamples = getMaxUsableSampleCount();
+
+            VkPhysicalDeviceProperties props;
+            vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
+            std::cout << "Selected GPU: " << props.deviceName << std::endl;
+
             break;
         }
     }
@@ -43,6 +49,10 @@ void Device::pickPhysicalDevice()
 void Device::createLogicalDevice()
 {
     QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice);
+
+    if (!indices.isComplete()) {
+        throw std::runtime_error("Queue family indices not complete during logical device creation.");
+    }
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {
@@ -60,25 +70,34 @@ void Device::createLogicalDevice()
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
-    deviceFeatures.sampleRateShading = VK_TRUE; // enable sample shading feature for the device
 
+    // Set up synchronization2 feature
     VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2Features{};
     synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
     synchronization2Features.synchronization2 = VK_TRUE;
 
+    // Set up base device features
+    VkPhysicalDeviceFeatures2 deviceFeatures2{};
+    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures2.features.samplerAnisotropy = VK_TRUE;
+    deviceFeatures2.features.sampleRateShading = VK_TRUE;
+
+    // Chain the pNext pointers
+    deviceFeatures2.pNext = &synchronization2Features;
+
+    // Set up device create info
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-    createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.pNext = &synchronization2Features;
+    createInfo.pEnabledFeatures = nullptr; // Required when using VkPhysicalDeviceFeatures2
+    createInfo.pNext = &deviceFeatures2;
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+
 
     if (enableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
