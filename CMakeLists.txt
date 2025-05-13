@@ -63,6 +63,7 @@ FetchContent_MakeAvailable(glfw glm stb tob)
 set(${PROJECT_NAME}_SOURCES
     "src/main.cpp"
     "src/utils.cpp"
+    "src/Camera.cpp"
     "src/Window.cpp"
     "src/Instance.cpp"
     "src/Surface.cpp"

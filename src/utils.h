@@ -5,7 +5,7 @@
 #include <optional>
 
 // Constants
-const std::string MODEL_PATH{ "./models/viking_room.obj" };
+const std::string MODEL_PATH{ "./models/sponza.obj" };
 const std::string TEXTURE_PATH{ "./textures/viking_room.png" };
 
 const int MAX_FRAMES_IN_FLIGHT{ 2 };
