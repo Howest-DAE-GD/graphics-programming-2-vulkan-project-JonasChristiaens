@@ -51,7 +51,7 @@ void Texture::createTextureImage()
 
     // copy staging buffer to texture image
     transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLevels);
-    //copyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    copyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
     //transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
 
     // cleaning up staging buffer and its memory
@@ -204,7 +204,7 @@ void Texture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayou
     VkCommandBuffer commandBuffer = Commands::beginSingleTimeCommands(m_pCommandPool, m_pDevice);
 
     VkImageMemoryBarrier2 barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
     barrier.oldLayout = oldLayout;
     barrier.newLayout = newLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -243,9 +243,9 @@ void Texture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayou
     else
         throw std::invalid_argument("unsupported layout transition!");
 
-    /*vkCmdPipelineBarrier2(
+    vkCmdPipelineBarrier2(
         commandBuffer,
-        &dependencyInfo);*/
+        &dependencyInfo);
 
     Commands::endSingleTimeCommands(commandBuffer, m_pCommandPool, m_pDevice);
 }

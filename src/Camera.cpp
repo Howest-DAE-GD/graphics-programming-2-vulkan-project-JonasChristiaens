@@ -4,6 +4,7 @@
 #include <SDL_keyboard.h>
 #include <SDL_scancode.h>
 #include <SDL_mouse.h>
+#include <iostream>
 
 Camera::Camera(const glm::vec3& origin, float fovAngle, float aspectRatio, float nearPlane, float farPlane)
 	: m_Origin{ origin }
@@ -90,6 +91,7 @@ void Camera::MoveCamera(const uint8_t* pKeyboardState, float deltaTime)
 	//Transforming camera's origin ( Movement )
 	if (pKeyboardState[SDL_SCANCODE_A] || pKeyboardState[SDL_SCANCODE_LEFT])
 	{
+		std::cout << "test" << std::endl;
 		m_Origin -= m_Right * m_MovementSpeed * deltaTime;
 	}
 	if (pKeyboardState[SDL_SCANCODE_D] || pKeyboardState[SDL_SCANCODE_RIGHT])
