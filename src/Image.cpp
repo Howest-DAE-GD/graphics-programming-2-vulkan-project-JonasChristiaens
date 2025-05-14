@@ -33,7 +33,9 @@ void Image::createDepthResources(uint32_t width, uint32_t height, VkSampleCountF
     m_DepthImageView = createImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, m_pDevice);
 }
 
-void Image::createImage(uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void Image::createImage(uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels, 
+    VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, 
+    VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
     // parameters for an image
     VkImageCreateInfo imageInfo{};

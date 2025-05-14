@@ -7,7 +7,6 @@
 #include <fstream>
 
 #include "SDL.h"
-using namespace dae;
 
 Timer::Timer()
 {

@@ -4,6 +4,7 @@
 
 // class including
 #include "Window.h"
+#include "Camera.h"
 #include "Instance.h"
 #include "Surface.h"
 #include "Device.h"
@@ -26,11 +27,12 @@ class HelloTriangleApplication {
 public:
     void run() 
     {
-        m_pWindow = new Window("Vulkan");
-        //m_Camera = std::make_unique<Camera>(Vector3{ 0.0f, 0.0f, 0.0f }, 45.0f, aspectRatio, 0.1f, 100.0f);
-        initVulkan();
-        mainLoop();
-        cleanup();
+       m_pTimer = new Timer();
+       m_pWindow = new Window("Vulkan");
+       m_Camera = std::make_unique<Camera>(glm::vec3{ 0.0f, 0.0f, 0.0f }, 45.0f, aspectRatio, 0.1f, 100.0f);
+       initVulkan();
+       mainLoop();
+       cleanup();
     }
 
 private:
@@ -38,6 +40,9 @@ private:
     // Private class variables
     // =======================
     Window* m_pWindow = nullptr;
+
+    Timer* m_pTimer = nullptr;
+    std::unique_ptr<Camera> m_Camera;
 
     Instance* m_pInstance = nullptr;
 	Surface* m_pSurface = nullptr;
@@ -98,13 +103,14 @@ private:
 
     void mainLoop() 
     {
-		// Loop until the user closes the window
-        while (!m_pWindow->shouldClose()) {
-            m_pWindow->pollEvents();
-            m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_indices);
-        }
+       // Loop until the user closes the window
+       while (!m_pWindow->shouldClose()) {
+           m_pWindow->pollEvents();
+           m_Camera->Update(m_pTimer);
+           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_indices);
+       }
 
-        vkDeviceWaitIdle(m_pDevice->getDevice());
+       vkDeviceWaitIdle(m_pDevice->getDevice());
     }
 
     void cleanup() 

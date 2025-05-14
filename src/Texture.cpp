@@ -44,18 +44,21 @@ void Texture::createTextureImage()
     vkUnmapMemory(m_pDevice->getDevice(), stagingBufferMemory);
 
     stbi_image_free(pixels); // clean up original pixel array
-    m_pSwapChain->m_pImage->createImage(texWidth, texHeight, m_MipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImage, m_TextureImageMemory);
+    m_pSwapChain->m_pImage->createImage(texWidth, texHeight, m_MipLevels, 
+        VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, 
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImage, m_TextureImageMemory);
 
     // copy staging buffer to texture image
     transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLevels);
-    copyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    //copyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
     //transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
 
     // cleaning up staging buffer and its memory
     vkDestroyBuffer(m_pDevice->getDevice(), stagingBuffer, nullptr);
     vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
 
-    generateMipmaps(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_MipLevels);
+    //generateMipmaps(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_MipLevels);
 }
 
 void Texture::createTextureImageView()
@@ -240,10 +243,9 @@ void Texture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayou
     else
         throw std::invalid_argument("unsupported layout transition!");
 
-    vkCmdPipelineBarrier2(
+    /*vkCmdPipelineBarrier2(
         commandBuffer,
-        &dependencyInfo
-    );
+        &dependencyInfo);*/
 
     Commands::endSingleTimeCommands(commandBuffer, m_pCommandPool, m_pDevice);
 }

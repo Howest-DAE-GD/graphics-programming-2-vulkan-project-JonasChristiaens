@@ -70,10 +70,16 @@ void Device::createLogicalDevice()
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
+    // WIP
+
+
     // Set up synchronization2 feature
-    VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2Features{};
+    /*VkPhysicalDeviceSynchronization2FeaturesKHR synchronization2Features{};
     synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR;
-    synchronization2Features.synchronization2 = VK_TRUE;
+    synchronization2Features.synchronization2 = VK_TRUE;*/
+    VkPhysicalDeviceVulkan13Features feats = {};
+    feats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    feats.synchronization2 = VK_TRUE;
 
     // Set up base device features
     VkPhysicalDeviceFeatures2 deviceFeatures2{};
@@ -82,7 +88,7 @@ void Device::createLogicalDevice()
     deviceFeatures2.features.sampleRateShading = VK_TRUE;
 
     // Chain the pNext pointers
-    deviceFeatures2.pNext = &synchronization2Features;
+    deviceFeatures2.pNext = &feats;//&synchronization2Features;
 
     // Set up device create info
     VkDeviceCreateInfo createInfo{};
@@ -178,7 +184,13 @@ bool Device::checkSynchronization2Support(VkPhysicalDevice device)
 
     deviceFeatures2.pNext = &synchronization2Features;
 
-    vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2);
+    /*vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2);
+
+    VkPhysicalDeviceVulkan13Features features = {};
+	features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    deviceFeatures2.pNext = &features;
+
+    vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2);*/
 
     return synchronization2Features.synchronization2;
 }

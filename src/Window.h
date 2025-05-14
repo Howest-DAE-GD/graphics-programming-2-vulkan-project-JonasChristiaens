@@ -22,8 +22,7 @@ public:
 
 private:
 	// private member variables
-	const uint32_t WIDTH = 800;
-	const uint32_t HEIGHT = 600;
+
 
 	GLFWwindow* m_pWindow = nullptr;
 	std::string m_title;

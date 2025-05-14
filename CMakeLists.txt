@@ -72,6 +72,7 @@ set(${PROJECT_NAME}_SOURCES
     "src/main.cpp"
     "src/utils.cpp"
     "src/Camera.cpp"
+    "src/HelperClasses/Timer.cpp"
     "src/Window.cpp"
     "src/Instance.cpp"
     "src/Surface.cpp"
