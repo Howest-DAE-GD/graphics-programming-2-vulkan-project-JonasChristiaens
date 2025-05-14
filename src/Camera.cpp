@@ -1,9 +1,13 @@
 #include "pch.h"
 #include "Camera.h"
 
+#include <SDL_keyboard.h>
+#include <SDL_scancode.h>
+#include <SDL_mouse.h>
+
 namespace dae
 {
-	Camera::Camera(const Vector3& origin, float fovAngle, float aspectRatio, float nearPlane, float farPlane)
+	Camera::Camera(const glm::vec3& origin, float fovAngle, float aspectRatio, float nearPlane, float farPlane)
 		: m_Origin{ origin }
 		, m_FovAngle{ fovAngle }
 		, m_AspectRatio{ aspectRatio }
@@ -17,16 +21,16 @@ namespace dae
 	{
 		// Method 1
 		//ONB -> invViewMatrix
-		m_Right = Vector3::Cross(Vector3::UnitY, m_Forward).Normalized();
-		m_Up = Vector3::Cross(m_Forward, m_Right).Normalized();
+		m_Right = glm::normalize(glm::cross(UnitY, m_Forward));
+		m_Up = glm::normalize(glm::cross(m_Forward, m_Right));
 		m_InvViewMatrix = { {m_Right, 0}, {m_Up, 0}, {m_Forward, 0}, {m_Origin, 1} };
 
 		//Inverse(ONB) => ViewMatrix
-		m_ViewMatrix = m_InvViewMatrix.Inverse();
+		m_ViewMatrix = glm::inverse(m_InvViewMatrix);
 	}
 	void Camera::CalculateProjectionMatrix()
 	{
-		Matrix projection{ Matrix::CreatePerspectiveFovLH(m_FOV, m_AspectRatio, .1f, 100.f) };
+		glm::mat4 projection{ CreatePerspectiveFovLH(m_FOV, m_AspectRatio, .1f, 100.f) };
 
 		// combine all space transformation matrix into one matrix
 		m_ProjectionMatrix = m_WorldMatrix * m_ViewMatrix * projection;
@@ -47,34 +51,40 @@ namespace dae
 		CalculateProjectionMatrix();
 	}
 
-	void Camera::RotateModel(const Timer* pTimer)
-	{
-		m_ConstantRotation += pTimer->GetElapsed();
-		m_WorldMatrix = (Matrix::CreateTranslation({ 0, 0, -50 }) * Matrix::CreateRotationY(m_ConstantRotation)) * Matrix::CreateTranslation({ 0, 0, 50 });
-	}
-
 	void Camera::SetRotationSpeed(float speed)
 	{
 		m_RotationSpeed = speed;
 	}
 
-	Matrix Camera::GetViewMatrix() const
+	glm::mat4 Camera::CreatePerspectiveFovLH(float fov, float aspect, float zn, float zf)
 	{
-		return m_ViewMatrix;
-	}
-	Matrix Camera::GetProjectionMatrix() const
-	{
-		return m_ProjectionMatrix;
-	}
-
-	Matrix Camera::GetWorldMatrix() const
-	{
-		return m_WorldMatrix;
+		return
+		{
+			{1.0f / (aspect * fov), 0.0f, 0.0f, 0.0f},
+			{0.0f, 1.0f / fov, 0.0f, 0.0f},
+			{0.0f, 0.0f, zf / (zf - zn), 1.0f},
+			{0.0f, 0.0f, -(zf * zn) / (zf - zn), 0.0f}
+		};
 	}
 
-	Vector3 Camera::GetOrigin() const
+	glm::mat4 Camera::CreateRotationX(float pitch)
 	{
-		return m_Origin;
+		return {
+			{1, 0, 0, 0},
+			{0, glm::cos(pitch), -glm::sin(pitch), 0},
+			{0, glm::sin(pitch), glm::cos(pitch), 0},
+			{0, 0, 0, 1}
+		};
+	}
+
+	glm::mat4 Camera::CreateRotationY(float yaw)
+	{
+		return {
+			{glm::cos(yaw), 0, -glm::sin(yaw), 0},
+			{0, 1, 0, 0},
+			{glm::sin(yaw), 0, glm::cos(yaw), 0},
+			{0, 0, 0, 1}
+		};
 	}
 
 	void Camera::MoveCamera(const uint8_t* pKeyboardState, float deltaTime)
@@ -129,10 +139,10 @@ namespace dae
 		}
 		if (mouseX || mouseY)
 		{
-			Matrix rotationMatrix{ Matrix::CreateRotationX(m_TotalPitch * TO_RADIANS) * Matrix::CreateRotationY(m_TotalYaw * TO_RADIANS) };
+			glm::mat4 rotationMatrix{ CreateRotationX(m_TotalPitch * TO_RADIANS) * CreateRotationY(m_TotalYaw * TO_RADIANS) };
 
-			m_Forward = rotationMatrix.TransformVector(Vector3::UnitZ);
-			m_Forward.Normalize();
+			m_Forward = glm::vec3(rotationMatrix * glm::vec4(UnitZ, 0.0f));
+			glm::normalize(m_Forward);
 		}
 	}
 }

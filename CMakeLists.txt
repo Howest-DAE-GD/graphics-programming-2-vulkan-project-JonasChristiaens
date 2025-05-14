@@ -57,7 +57,15 @@ FetchContent_Declare(
   GIT_SHALLOW ON
 )
 
-FetchContent_MakeAvailable(glfw glm stb tob)
+# Fetch SDL2
+FetchContent_Declare(
+  sdl2
+  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+  GIT_TAG release-2.28.5
+  GIT_SHALLOW ON
+)
+
+FetchContent_MakeAvailable(glfw glm stb tob sdl2)
 
 # Set the output directory
 set(${PROJECT_NAME}_SOURCES
@@ -75,8 +83,8 @@ set(${PROJECT_NAME}_SOURCES
     "src/Pipeline.cpp"
     "src/CommandPool.cpp"
     "src/Texture.cpp"
-    "src/Buffer.cpp" 
-    "src/Commands.cpp" 
+    "src/Buffer.cpp"
+    "src/Commands.cpp"
     "src/DescriptorPool.cpp"
     "src/SceneManager.cpp"
     "src/CommandBuffer.cpp"
@@ -84,10 +92,10 @@ set(${PROJECT_NAME}_SOURCES
 
 # Add the project executable
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan glfw glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan glfw glm SDL2::SDL2)
 
 # Include the stb_image.h header
-target_include_directories(${PROJECT_NAME} PRIVATE ${stb_SOURCE_DIR} ${tinyobjloader_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${stb_SOURCE_DIR} ${tinyobjloader_SOURCE_DIR} ${sdl2_SOURCE_DIR}/include)
 
 # Add custom command to run compile.bat every time the project is built
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

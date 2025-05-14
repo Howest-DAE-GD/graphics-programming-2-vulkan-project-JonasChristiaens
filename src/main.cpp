@@ -27,7 +27,7 @@ public:
     void run() 
     {
         m_pWindow = new Window("Vulkan");
-        m_Camera = std::make_unique<Camera>(Vector3{ 0.0f, 0.0f, 0.0f }, 45.0f, aspectRatio, 0.1f, 100.0f);
+        //m_Camera = std::make_unique<Camera>(Vector3{ 0.0f, 0.0f, 0.0f }, 45.0f, aspectRatio, 0.1f, 100.0f);
         initVulkan();
         mainLoop();
         cleanup();
