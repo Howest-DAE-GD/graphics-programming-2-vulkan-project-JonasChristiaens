@@ -58,7 +58,7 @@ void Texture::createTextureImage()
     vkDestroyBuffer(m_pDevice->getDevice(), stagingBuffer, nullptr);
     vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
 
-    //generateMipmaps(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_MipLevels);
+    generateMipmaps(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_MipLevels);
 }
 
 void Texture::createTextureImageView()
@@ -144,12 +144,14 @@ void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWi
         barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 
         VkDependencyInfo dependencyInfo{};
         dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
         dependencyInfo.imageMemoryBarrierCount = 1;
         dependencyInfo.pImageMemoryBarriers = &barrier;
-
+            
         vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 
         VkImageBlit blit{};
@@ -176,6 +178,8 @@ void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWi
         barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
         barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 
         vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 
@@ -188,6 +192,8 @@ void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWi
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 
     VkDependencyInfo dependencyInfo{};
     dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
@@ -228,17 +234,15 @@ void Texture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayou
     {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
     }
     else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
         barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-        destinationStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
     }
     else
         throw std::invalid_argument("unsupported layout transition!");
@@ -246,6 +250,7 @@ void Texture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayou
     vkCmdPipelineBarrier2(
         commandBuffer,
         &dependencyInfo);
+
 
     Commands::endSingleTimeCommands(commandBuffer, m_pCommandPool, m_pDevice);
 }

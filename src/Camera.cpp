@@ -39,6 +39,7 @@ void Camera::Update(const Timer* pTimer)
 {
 	//Camera Update Logic
 	const float deltaTime = pTimer->GetElapsed();
+	std::cout << "Deltatime: " << deltaTime << std::endl;
 
 	//Keyboard Input
 	const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
@@ -88,6 +89,7 @@ glm::mat4 Camera::CreateRotationY(float yaw)
 
 void Camera::MoveCamera(const uint8_t* pKeyboardState, float deltaTime)
 {
+	std::cout << "MoveCamera function called" << std::endl;
 	//Transforming camera's origin ( Movement )
 	if (pKeyboardState[SDL_SCANCODE_A] || pKeyboardState[SDL_SCANCODE_LEFT])
 	{
