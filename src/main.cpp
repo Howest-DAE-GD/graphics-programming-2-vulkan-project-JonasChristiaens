@@ -22,6 +22,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <SDL_events.h>
 
 class HelloTriangleApplication {
 public:
