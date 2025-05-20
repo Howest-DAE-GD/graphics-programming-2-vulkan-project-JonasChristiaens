@@ -49,6 +49,14 @@ FetchContent_Declare(
   GIT_SHALLOW ON
 )
 
+# Fetch assimp
+FetchContent_Declare(
+  assimp
+  GIT_REPOSITORY https://github.com/assimp/assimp.git
+  GIT_TAG v5.2.5
+  GIT_SHALLOW ON
+)
+
 # Fetch tinyobjloader
 FetchContent_Declare(
   tob
@@ -65,7 +73,7 @@ FetchContent_Declare(
   GIT_SHALLOW ON
 )
 
-FetchContent_MakeAvailable(glfw glm stb tob sdl2)
+FetchContent_MakeAvailable(glfw glm stb tob sdl2 vma assimp)
 
 # Set the output directory
 set(${PROJECT_NAME}_SOURCES
@@ -93,10 +101,21 @@ set(${PROJECT_NAME}_SOURCES
 
 # Add the project executable
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan glfw glm SDL2::SDL2)
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    Vulkan::Vulkan 
+    glfw 
+    glm 
+    SDL2::SDL2 
+    assimp::assimp
+)
 
 # Include the stb_image.h header
-target_include_directories(${PROJECT_NAME} PRIVATE ${stb_SOURCE_DIR} ${tinyobjloader_SOURCE_DIR} ${sdl2_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    ${stb_SOURCE_DIR}
+    ${tinyobjloader_SOURCE_DIR}
+    ${sdl2_SOURCE_DIR}/include
+    ${assimp_SOURCE_DIR}/include
+)
 
 # Add custom command to run compile.bat every time the project is built
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

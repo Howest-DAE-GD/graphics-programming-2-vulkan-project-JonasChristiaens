@@ -49,7 +49,11 @@ private:
 	Device* m_pDevice = nullptr;
     SwapChain* m_pSwapChain = nullptr;
     Renderpass* m_pRenderpass = nullptr;
+
 	DescriptorSetLayout* m_pDescriptorSetLayout = nullptr;
+	/*DescriptorSetLayout* m_pSamplerDescriptorSetLayout = nullptr;
+	DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;*/
+
 	Pipeline* m_pPipeline = nullptr;
 	CommandPool* m_pCommandPool = nullptr;
 	Texture* m_pTexture = nullptr;
@@ -76,7 +80,11 @@ private:
 		m_pDevice = new Device(m_pSurface, m_pInstance); // pickPhysicalDevice & createLogicalDevice
 		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface); // createSwapChain & createImageViews
         m_pRenderpass = new Renderpass(m_pDevice, m_pSwapChain); // createRenderPass
-		m_pDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
+
+        m_pDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
+        //m_pSamplerDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
+        //m_pUboDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
+
 		m_pPipeline = new Pipeline(m_pDevice, m_pDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
 		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
@@ -84,13 +92,19 @@ private:
         m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain, m_pRenderpass);
         m_pSceneManager->loadModel(m_vertices, m_indices); // loadModel
 
-        // createVertexBuffer
-        m_pVertexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-        m_pVertexBuffer->CreateStagingBuffer(sizeof(m_vertices[0]) * m_vertices.size(), m_vertices.data());
+        // for each separate mesh, create separate buffers (TODO: change to use single large buffer)
+        for (auto& mesh : m_pSceneManager->m_Meshes) {
 
-        // createIndexBuffer
-        m_pIndexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        m_pIndexBuffer->CreateStagingBuffer(sizeof(m_indices[0]) * m_indices.size(), m_indices.data());
+            // createVertexBuffer
+            m_pVertexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+            m_pVertexBuffer->CreateStagingBuffer(sizeof(mesh.vertices[0]) * mesh.vertices.size(), mesh.vertices.data());
+            //m_pVertexBuffer->CreateStagingBuffer(sizeof(m_vertices[0]) * m_vertices.size(), m_vertices.data());
+
+            // createIndexBuffer
+            m_pIndexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+            m_pIndexBuffer->CreateStagingBuffer(sizeof(mesh.indices[0]) * mesh.indices.size(), mesh.indices.data());
+            //m_pIndexBuffer->CreateStagingBuffer(sizeof(m_indices[0]) * m_indices.size(), m_indices.data());
+        }
 
         createUniformBuffers();
 

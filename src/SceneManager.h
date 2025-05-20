@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 class Device;
@@ -23,6 +24,8 @@ public:
 
 	void cleanupScene();
 
+	std::vector<Mesh> m_Meshes{};
+	//Mesh m_Mesh{};
 private:
 	// private member variables
 	Device* m_pDevice{};
@@ -33,6 +36,9 @@ private:
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores{};
 	std::vector<VkFence> m_InFlightFences{};
 	uint32_t m_CurrentFrame{};
+
+	std::vector<std::string> m_texturePaths{};
+	std::vector<std::string> m_normalPaths{};
 
 	// private member functions
 	void updateUniformBuffer(uint32_t currentImage, std::vector<void*> uniformBuffersMapped);

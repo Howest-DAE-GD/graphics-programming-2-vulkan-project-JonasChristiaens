@@ -8,11 +8,13 @@
 #include "Window.h"
 #include "CommandBuffer.h"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include <stdexcept>
 #include <vector>
 #include <chrono>
+#include <iostream>
 
 SceneManager::SceneManager(Device* device, SwapChain* spawChain, Renderpass* renderpass)
     : m_pDevice(device)
@@ -23,40 +25,68 @@ SceneManager::SceneManager(Device* device, SwapChain* spawChain, Renderpass* ren
 
 void SceneManager::loadModel(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
 {
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
+    Assimp::Importer importer;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
-        throw std::runtime_error(warn + err);
+	const aiScene* scene = importer.ReadFile(MODEL_PATH, 
+        aiProcess_Triangulate | 
+		aiProcess_CalcTangentSpace |
+		aiProcess_JoinIdenticalVertices |
+        aiProcess_FlipUVs
+    );
+
+    // check for failure
+    if (!scene)
+    {
+		std::cout << "Error loading model: " << importer.GetErrorString() << std::endl;
+        return;
     }
 
-    std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+	m_texturePaths.resize(scene->mNumMaterials);
+	m_normalPaths.resize(scene->mNumMaterials);
+    
+    const aiMatrix4x4 root = scene->mRootNode->mTransformation;
+    for (unsigned int m = 0; m < scene->mNumMeshes; m++)
+    {
+        aiMesh* mesh = scene->mMeshes[m];
+		Mesh newMesh;
 
-    for (const auto& shape : shapes) {
-        for (const auto& index : shape.mesh.indices) {
-            Vertex vertex{};
+		// Process vertices
+        newMesh.vertices.reserve(mesh->mNumVertices);
+        for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+            Vertex v;
+            aiVector3D scaleVertices = root * mesh->mVertices[i];
+            v.pos = glm::vec3(scaleVertices.x, scaleVertices.y, scaleVertices.z);
+            v.texCoord = mesh->HasTextureCoords(0) ? glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y) : glm::vec2(0.0f);
+            v.color = { 1.f, 1.f, 1.f };
+            v.normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+            v.tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
+            v.biTangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
+            newMesh.vertices.push_back(v);
+        }
 
-            vertex.pos = {
-                attrib.vertices[3 * index.vertex_index + 0],
-                attrib.vertices[3 * index.vertex_index + 1],
-                attrib.vertices[3 * index.vertex_index + 2]
-            };
-
-            vertex.texCoord = {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            };
-
-            vertex.color = { 1.0f, 1.0f, 1.0f };
-
-            if (uniqueVertices.count(vertex) == 0) {
-                uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-                vertices.push_back(vertex);
+        // Process indices
+		newMesh.indices.reserve(mesh->mNumFaces * 3);
+        for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+            aiFace face = mesh->mFaces[i];
+            for (unsigned int j = 0; j < face.mNumIndices; j++) {
+                newMesh.indices.push_back(face.mIndices[j]);
             }
+        }
 
-            indices.push_back(uniqueVertices[vertex]);
+        // Store material index
+        newMesh.materialIndex = mesh->mMaterialIndex;
+		m_Meshes.push_back(newMesh);
+
+        // load material textures
+        aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+        aiString texPath;
+
+        if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
+            m_texturePaths[mesh->mMaterialIndex] = "models\\Sponza\\glTF\\" + std::string(texPath.C_Str());
+        }
+
+        if (material->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS) {
+            m_normalPaths[mesh->mMaterialIndex] = "models\\Sponza\\glTF\\" + std::string(texPath.C_Str());
         }
     }
 }

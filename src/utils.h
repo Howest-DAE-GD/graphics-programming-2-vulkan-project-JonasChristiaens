@@ -48,11 +48,23 @@ struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
+	glm::vec3 normal;
+	glm::vec3 tangent;
+	glm::vec3 biTangent;
 
     static VkVertexInputBindingDescription getBindingDescription();
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions();
 
     bool operator==(const Vertex& other) const;
+};
+
+struct Mesh {
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+    uint32_t materialIndex;
+
+    size_t vertexCount() const { return vertices.size(); }
+    size_t indexCount() const { return indices.size(); }
 };
 
 namespace std {
