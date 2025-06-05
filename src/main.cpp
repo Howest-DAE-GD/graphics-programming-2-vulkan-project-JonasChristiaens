@@ -81,11 +81,7 @@ private:
 		m_pDevice = new Device(m_pSurface, m_pInstance); // pickPhysicalDevice & createLogicalDevice
 		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface); // createSwapChain & createImageViews
         m_pRenderpass = new Renderpass(m_pDevice, m_pSwapChain); // createRenderPass
-
         m_pDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
-        //m_pSamplerDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
-        //m_pUboDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
-
 		m_pPipeline = new Pipeline(m_pDevice, m_pDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
 		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
@@ -99,12 +95,10 @@ private:
             // createVertexBuffer
             m_pVertexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
             m_pVertexBuffer->CreateStagingBuffer(sizeof(mesh.vertices[0]) * mesh.vertices.size(), mesh.vertices.data());
-            //m_pVertexBuffer->CreateStagingBuffer(sizeof(m_vertices[0]) * m_vertices.size(), m_vertices.data());
 
             // createIndexBuffer
             m_pIndexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
             m_pIndexBuffer->CreateStagingBuffer(sizeof(mesh.indices[0]) * mesh.indices.size(), mesh.indices.data());
-            //m_pIndexBuffer->CreateStagingBuffer(sizeof(m_indices[0]) * m_indices.size(), m_indices.data());
         }
 
         createUniformBuffers();

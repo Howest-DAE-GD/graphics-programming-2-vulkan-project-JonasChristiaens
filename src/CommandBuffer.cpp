@@ -11,6 +11,7 @@
 #include "DescriptorPool.h"
 #include "SceneManager.h"
 #include <stdexcept>
+#include <iostream>
 
 CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, Renderpass* renderpass, SwapChain* swapChain, Pipeline* pipeline, Buffer* vertexBuffer,
     Buffer* indexBuffer, DescriptorPool* descriptor, SceneManager* sceneManager)
