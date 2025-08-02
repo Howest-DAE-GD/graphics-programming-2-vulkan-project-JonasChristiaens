@@ -4,11 +4,12 @@
 class Device;
 class SwapChain;
 class CommandPool;
+class SceneManager;
 class Texture
 {
 public:
 	// constructor & destructor
-	Texture(Device* device, SwapChain* swapchain, CommandPool* commandPool);
+	Texture(Device* device, SwapChain* swapchain, CommandPool* commandPool, SceneManager* sceneManager);
 	~Texture() = default;
 
 	// public member functions
@@ -17,7 +18,7 @@ public:
 	void createTextureSampler();
 	void cleanupTextures();
 
-	VkImageView getTextureImageView() const { return m_TextureImageView; }
+	std::vector<VkImageView> getTextureImageViews() const { return m_TextureImageViews; }
 	VkSampler getTextureSampler() const { return m_TextureSampler; }
 	uint32_t getMipLevels() const { return m_MipLevels; }
 
@@ -26,10 +27,12 @@ private:
 	Device* m_pDevice = nullptr;
 	SwapChain* m_pSwapChain = nullptr;
 	CommandPool* m_pCommandPool = nullptr;
+	SceneManager* m_pSceneManager = nullptr;
 
-	VkImage m_TextureImage = VK_NULL_HANDLE;
-	VkDeviceMemory m_TextureImageMemory = VK_NULL_HANDLE;
-	VkImageView m_TextureImageView = VK_NULL_HANDLE;
+	std::vector<VkImage> m_TextureImages;
+	std::vector<VkDeviceMemory> m_TextureImageMemories;
+	std::vector<VkImageView> m_TextureImageViews;
+
 	VkSampler m_TextureSampler = VK_NULL_HANDLE;
 	uint32_t m_MipLevels = 0;
 

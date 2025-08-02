@@ -66,7 +66,7 @@ void DescriptorPool::createDescriptorSets(std::vector<Buffer*>& uniformBuffers)
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_pTexture->getTextureImageView();
+        imageInfo.imageView = m_pTexture->getTextureImageViews()[idx];
         imageInfo.sampler = m_pTexture->getTextureSampler();
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};

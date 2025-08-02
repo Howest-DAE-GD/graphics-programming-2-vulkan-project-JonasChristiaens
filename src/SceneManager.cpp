@@ -82,15 +82,13 @@ void SceneManager::loadModel()
         aiString texPath;
 
         if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
-            m_texturePaths[mesh->mMaterialIndex] = "models\\Sponza\\glTF\\" + std::string(texPath.C_Str());
+            m_texturePaths[mesh->mMaterialIndex] = "models\\" + std::string(texPath.C_Str());
         }
 
         if (material->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS) {
-            m_normalPaths[mesh->mMaterialIndex] = "models\\Sponza\\glTF\\" + std::string(texPath.C_Str());
+            m_normalPaths[mesh->mMaterialIndex] = "models\\" + std::string(texPath.C_Str());
         }
     }
-
-	std::cout << "sussy" << std::endl;
 }
 
 void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers)

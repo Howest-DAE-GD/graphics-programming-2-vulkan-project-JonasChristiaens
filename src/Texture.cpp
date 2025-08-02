@@ -6,15 +6,17 @@
 #include "SwapChain.h"
 #include "Buffer.h"
 #include "Commands.h"
+#include "SceneManager.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include <stdexcept>
 
-Texture::Texture(Device* device, SwapChain* swapchain, CommandPool* commandPool)
+Texture::Texture(Device* device, SwapChain* swapchain, CommandPool* commandPool, SceneManager* sceneManager)
 	: m_pDevice(device)
     , m_pSwapChain(swapchain)
     , m_pCommandPool(commandPool)
+    , m_pSceneManager(sceneManager)
 {
 	createTextureImage();
     createTextureImageView();
@@ -23,47 +25,70 @@ Texture::Texture(Device* device, SwapChain* swapchain, CommandPool* commandPool)
 
 void Texture::createTextureImage()
 {
-    // loading in image with stb library
-    int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
-    m_MipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+    for (auto path : m_pSceneManager->getTexturePaths())
+    {
+        if (path.empty()) continue;
 
-    if (!pixels)
-        throw std::runtime_error("failed to load texture image!");
+        int texWidth, texHeight, texChannels;
+        stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
 
-    // create buffer in host visible memory which allows vkMapMemory
-    VkBuffer stagingBuffer{};
-    VkDeviceMemory stagingBufferMemory{};
-    Buffer::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, m_pDevice);
+		// calc mip levels
+        m_MipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
-    // directly copy pixel values to buffer
-    void* data;
-    vkMapMemory(m_pDevice->getDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(m_pDevice->getDevice(), stagingBufferMemory);
+        if (!pixels) throw std::runtime_error("failed to load texture image!");
 
-    stbi_image_free(pixels); // clean up original pixel array
-    m_pSwapChain->m_pImage->createImage(texWidth, texHeight, m_MipLevels, 
-        VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, 
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImage, m_TextureImageMemory);
+        // create buffer in host visible memory which allows vkMapMemory
+        VkBuffer stagingBuffer{};
+        VkDeviceMemory stagingBufferMemory{};
+        Buffer::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+            stagingBuffer, stagingBufferMemory, m_pDevice);
 
-    // copy staging buffer to texture image
-    transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLevels);
-    copyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    //transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
+        // directly copy pixel values to buffer
+        void* data;
+        vkMapMemory(m_pDevice->getDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
+        memcpy(data, pixels, static_cast<size_t>(imageSize));
+        vkUnmapMemory(m_pDevice->getDevice(), stagingBufferMemory);
 
-    // cleaning up staging buffer and its memory
-    vkDestroyBuffer(m_pDevice->getDevice(), stagingBuffer, nullptr);
-    vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
+        stbi_image_free(pixels); // clean up original pixel array
 
-    generateMipmaps(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_MipLevels);
+        // Create new image and memory
+        VkImage textureImage;
+        VkDeviceMemory textureImageMemory;
+        m_pSwapChain->m_pImage->createImage(texWidth, texHeight, m_MipLevels,
+            VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+        
+        // Store the new image and memory
+        m_TextureImages.push_back(textureImage);
+        m_TextureImageMemories.push_back(textureImageMemory);
+
+        // copy staging buffer to texture image
+        transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLevels);
+        copyBufferToImage(stagingBuffer, textureImage,
+            static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+        //transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
+
+        // cleaning up staging buffer and its memory
+        vkDestroyBuffer(m_pDevice->getDevice(), stagingBuffer, nullptr);
+        vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
+
+        generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_MipLevels);
+    }
 }
 
 void Texture::createTextureImageView()
 {
-    m_TextureImageView = Image::createImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_MipLevels, m_pDevice);
+    m_TextureImageViews.clear();
+    for (size_t i = 0; i < m_TextureImages.size(); i++) {
+        VkImageView imageView = Image::createImageView(m_TextureImages[i],
+            VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT,
+            m_MipLevels, m_pDevice);
+        m_TextureImageViews.push_back(imageView);
+    }
 }
 
 void Texture::createTextureSampler()
@@ -99,18 +124,20 @@ void Texture::cleanupTextures()
         vkDestroySampler(m_pDevice->getDevice(), m_TextureSampler, nullptr);
         m_TextureSampler = VK_NULL_HANDLE;
     }
-    if (m_TextureImageView != VK_NULL_HANDLE) {
-        vkDestroyImageView(m_pDevice->getDevice(), m_TextureImageView, nullptr);
-        m_TextureImageView = VK_NULL_HANDLE;
+
+    // Cleanup all image views
+    for (auto imageView : m_TextureImageViews) {
+        vkDestroyImageView(m_pDevice->getDevice(), imageView, nullptr);
     }
-    if (m_TextureImage != VK_NULL_HANDLE) {
-        vkDestroyImage(m_pDevice->getDevice(), m_TextureImage, nullptr);
-        m_TextureImage = VK_NULL_HANDLE;
+    m_TextureImageViews.clear();
+
+    // Cleanup all images and memory
+    for (size_t i = 0; i < m_TextureImages.size(); i++) {
+        vkDestroyImage(m_pDevice->getDevice(), m_TextureImages[i], nullptr);
+        vkFreeMemory(m_pDevice->getDevice(), m_TextureImageMemories[i], nullptr);
     }
-    if (m_TextureImageMemory != VK_NULL_HANDLE) {
-        vkFreeMemory(m_pDevice->getDevice(), m_TextureImageMemory, nullptr);
-        m_TextureImageMemory = VK_NULL_HANDLE;
-    }
+    m_TextureImages.clear();
+    m_TextureImageMemories.clear();
 }
 
 void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)

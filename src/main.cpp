@@ -85,9 +85,9 @@ private:
 		m_pPipeline = new Pipeline(m_pDevice, m_pDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
 		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
-		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool); // createTextureImage, createTextureImageView, createTextureSampler
         m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain, m_pRenderpass);
         m_pSceneManager->loadModel(); // loadModel
+		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool, m_pSceneManager); // createTextureImage, createTextureImageView, createTextureSampler
 
         // for each separate mesh, create separate buffers (TODO: change to use single large buffer)
         for (int i{}; i < m_pSceneManager->getMeshes().size(); i++) {

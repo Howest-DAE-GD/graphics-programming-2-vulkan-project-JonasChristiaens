@@ -24,6 +24,7 @@ public:
 
 	void cleanupScene();
 	std::vector<Mesh>& getMeshes() { return m_Meshes; }
+	std::vector<std::string>& getTexturePaths() { return m_texturePaths; }
 
 private:
 	// private member variables
