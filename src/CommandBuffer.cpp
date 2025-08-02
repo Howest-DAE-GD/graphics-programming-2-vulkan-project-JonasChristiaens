@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "CommandBuffer.h"
 #include "utils.h"
+#include "CommandBuffer.h"
 
 #include "Device.h"
 #include "CommandPool.h"
@@ -13,15 +13,15 @@
 #include <stdexcept>
 #include <iostream>
 
-CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, Renderpass* renderpass, SwapChain* swapChain, Pipeline* pipeline, Buffer* vertexBuffer,
-    Buffer* indexBuffer, DescriptorPool* descriptor, SceneManager* sceneManager)
+CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, Renderpass* renderpass, SwapChain* swapChain, Pipeline* pipeline, std::vector<Buffer*> vertexBuffer,
+    std::vector<Buffer*> indexBuffer, DescriptorPool* descriptor, SceneManager* sceneManager)
 	: m_pDevice(device)
 	, m_pCommandPool(commandPool)
     , m_pRenderpass(renderpass)
     , m_pSwapChain(swapChain)
     , m_pPipeline(pipeline)
-    , m_pVertexBuffer(vertexBuffer)
-    , m_pIndexBuffer(indexBuffer)
+    , m_pVertexBuffers(vertexBuffer)
+    , m_pIndexBuffers(indexBuffer)
     , m_pDescriptorPool(descriptor)
     , m_pSceneManager(sceneManager)
 {
@@ -42,7 +42,7 @@ void CommandBuffer::createCommandBuffers()
 	}
 }
 
-void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<uint32_t> indices)
+void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -81,14 +81,21 @@ void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     scissor.extent = m_pSwapChain->getExtent();
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkBuffer vertexBuffers[] = { m_pVertexBuffer->getBuffer() };
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    // Bind index buffer
+    for (int i{}; i < m_pIndexBuffers.size(); ++i)
+    {
+        VkBuffer vertexBuffers[]{ m_pVertexBuffers[i]->getBuffer() };
+        VkDeviceSize offsets[]{ 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-    vkCmdBindIndexBuffer(commandBuffer, m_pIndexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, m_pIndexBuffers[i]->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &m_pDescriptorPool->getDescriptorSets()[m_pSceneManager->getCurrentFrame()], 0, nullptr);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        // Bind descriptor set
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &m_pDescriptorPool->getDescriptorSets()[m_pSceneManager->getCurrentFrame()], 0, nullptr);
+
+        // New draw to use indexbuffer
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Meshes[i].indices.size()), 1, 0, 0, 0);
+    }
 
     vkCmdEndRenderPass(commandBuffer);
 

@@ -59,9 +59,9 @@ private:
 	CommandPool* m_pCommandPool = nullptr;
 	Texture* m_pTexture = nullptr;
 
-    std::vector<Vertex> m_vertices{};
+	std::vector<Buffer*> m_pVertexBuffers{};
+    std::vector<Buffer*> m_pIndexBuffers{};
     Buffer* m_pVertexBuffer = nullptr;
-    std::vector<uint32_t> m_indices{};
     Buffer* m_pIndexBuffer = nullptr;;
 
     std::vector<Buffer*> m_pUniformBuffers{};
@@ -87,25 +87,25 @@ private:
 		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool); // createTextureImage, createTextureImageView, createTextureSampler
         m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain, m_pRenderpass);
-        m_pSceneManager->loadModel(m_vertices, m_indices); // loadModel
+        m_pSceneManager->loadModel(); // loadModel
 
         // for each separate mesh, create separate buffers (TODO: change to use single large buffer)
-        for (auto& mesh : m_pSceneManager->m_Meshes) {
+        for (int i{}; i < m_pSceneManager->getMeshes().size(); i++) {
 
             // createVertexBuffer
-            m_pVertexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-            m_pVertexBuffer->CreateStagingBuffer(sizeof(mesh.vertices[0]) * mesh.vertices.size(), mesh.vertices.data());
+            m_pVertexBuffers.push_back(new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
+            m_pVertexBuffers[i]->CreateStagingBuffer(sizeof(m_pSceneManager->getMeshes()[i].vertices[0]) * m_pSceneManager->getMeshes()[i].vertices.size(), m_pSceneManager->getMeshes()[i].vertices.data());
 
             // createIndexBuffer
-            m_pIndexBuffer = new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-            m_pIndexBuffer->CreateStagingBuffer(sizeof(mesh.indices[0]) * mesh.indices.size(), mesh.indices.data());
+            m_pIndexBuffers.push_back(new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT));
+            m_pIndexBuffers[i]->CreateStagingBuffer(sizeof(m_pSceneManager->getMeshes()[i].indices[0]) * m_pSceneManager->getMeshes()[i].indices.size(), m_pSceneManager->getMeshes()[i].indices.data());
         }
 
         createUniformBuffers();
 
         m_pDescriptorPool = new DescriptorPool(m_pDevice, m_pTexture, m_pDescriptorSetLayout, m_pUniformBuffers); // createDescriptorPool & createDescriptorSets
         
-        m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pRenderpass, m_pSwapChain, m_pPipeline, m_pVertexBuffer, m_pIndexBuffer, m_pDescriptorPool, m_pSceneManager);
+        m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pRenderpass, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pDescriptorPool, m_pSceneManager);
         m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects
     }
@@ -116,7 +116,7 @@ private:
        while (!m_pWindow->shouldClose()) {
            m_pWindow->pollEvents();
            m_Camera->Update(m_pTimer);
-           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_indices);
+           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer);
        }
 
        vkDeviceWaitIdle(m_pDevice->getDevice());

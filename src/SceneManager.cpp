@@ -23,7 +23,7 @@ SceneManager::SceneManager(Device* device, SwapChain* spawChain, Renderpass* ren
 {
 }
 
-void SceneManager::loadModel(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+void SceneManager::loadModel()
 {
     Assimp::Importer importer;
 
@@ -89,9 +89,11 @@ void SceneManager::loadModel(std::vector<Vertex>& vertices, std::vector<uint32_t
             m_normalPaths[mesh->mMaterialIndex] = "models\\Sponza\\glTF\\" + std::string(texPath.C_Str());
         }
     }
+
+	std::cout << "sussy" << std::endl;
 }
 
-void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, std::vector<uint32_t> indices)
+void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers)
 {
     VkCommandBuffer rawCommandBuffer{ commandBuffers->getCommandBuffers()[m_CurrentFrame] };
     vkWaitForFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
@@ -111,7 +113,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     vkResetFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
 
     vkResetCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], 0);
-    commandBuffers->recordCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, indices);
+    commandBuffers->recordCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, m_Meshes);
 
     VkCommandBufferSubmitInfo commandBufferSubmitInfo{};
     commandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -206,7 +208,7 @@ void SceneManager::updateUniformBuffer(uint32_t currentImage, std::vector<void*>
 
     // Define model, view and projection transformations in UBO
     UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.model = glm::scale(glm::mat4(1.0), glm::vec3(.01f));
     ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f), m_pSwapChain->getExtent().width / (float)m_pSwapChain->getExtent().height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;

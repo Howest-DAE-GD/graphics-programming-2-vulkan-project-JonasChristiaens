@@ -5,7 +5,7 @@
 #include <optional>
 
 // Constants
-const std::string MODEL_PATH{ "./models/viking_room.obj" };
+const std::string MODEL_PATH{ "./models/sponza.obj" };
 const std::string TEXTURE_PATH{ "./textures/viking_room.png" };
 
 const int MAX_FRAMES_IN_FLIGHT{ 2 };
@@ -64,7 +64,9 @@ struct Mesh {
     uint32_t materialIndex;
 
     size_t vertexCount() const { return vertices.size(); }
+
     size_t indexCount() const { return indices.size(); }
+	std::vector<uint32_t> getIndices() const { return indices; }
 };
 
 namespace std {

@@ -18,14 +18,13 @@ public:
 	// public member functions
 	uint32_t getCurrentFrame() const { return m_CurrentFrame; }
 
-	void loadModel(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
-	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, std::vector<uint32_t> indices);
+	void loadModel();
+	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers);
 	void createSyncObjects();
 
 	void cleanupScene();
+	std::vector<Mesh>& getMeshes() { return m_Meshes; }
 
-	std::vector<Mesh> m_Meshes{};
-	//Mesh m_Mesh{};
 private:
 	// private member variables
 	Device* m_pDevice{};
@@ -39,6 +38,8 @@ private:
 
 	std::vector<std::string> m_texturePaths{};
 	std::vector<std::string> m_normalPaths{};
+
+	std::vector<Mesh> m_Meshes{};
 
 	// private member functions
 	void updateUniformBuffer(uint32_t currentImage, std::vector<void*> uniformBuffersMapped);
