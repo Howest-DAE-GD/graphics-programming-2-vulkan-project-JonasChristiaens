@@ -34,7 +34,8 @@ void Texture::createTextureImage()
         VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 		// calc mip levels
-        m_MipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+        uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+        m_MipLevels.push_back(mipLevels);
 
         if (!pixels) throw std::runtime_error("failed to load texture image!");
 
@@ -56,7 +57,7 @@ void Texture::createTextureImage()
         // Create new image and memory
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;
-        m_pSwapChain->m_pImage->createImage(texWidth, texHeight, m_MipLevels,
+        m_pSwapChain->m_pImage->createImage(texWidth, texHeight, mipLevels,
             VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
@@ -67,7 +68,7 @@ void Texture::createTextureImage()
 
         // copy staging buffer to texture image
         transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB,
-            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLevels);
+            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
         copyBufferToImage(stagingBuffer, textureImage,
             static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
         //transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
@@ -76,7 +77,7 @@ void Texture::createTextureImage()
         vkDestroyBuffer(m_pDevice->getDevice(), stagingBuffer, nullptr);
         vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
 
-        generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_MipLevels);
+        generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
     }
 }
 
@@ -86,7 +87,7 @@ void Texture::createTextureImageView()
     for (size_t i = 0; i < m_TextureImages.size(); i++) {
         VkImageView imageView = Image::createImageView(m_TextureImages[i],
             VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT,
-            m_MipLevels, m_pDevice);
+            m_MipLevels[i], m_pDevice);
         m_TextureImageViews.push_back(imageView);
     }
 }
@@ -111,7 +112,7 @@ void Texture::createTextureSampler()
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = static_cast<float>(m_MipLevels);
+    samplerInfo.maxLod = m_MipLevels.empty() ? 0.0f : static_cast<float>(*std::max_element(m_MipLevels.begin(), m_MipLevels.end()));
     samplerInfo.mipLodBias = 0.0f;
 
     if (vkCreateSampler(m_pDevice->getDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)

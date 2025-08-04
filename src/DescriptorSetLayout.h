@@ -12,11 +12,11 @@ public:
 	const VkDescriptorSetLayout& getDescriptorSetLayout() const { return m_DescriptorSetLayout; }
 	void cleanupDescriptorSetLayout();
 
+	void createGlobalDescriptorSetLayout(uint32_t textureCount);
+	void createUboDescriptorSetLayout();
+
 private:
 	// private member variables
 	Device* m_pDevice = nullptr;
 	VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE;
-
-	// private member functions
-	void createDescriptorSetLayout();
 };

@@ -8,6 +8,7 @@ class SwapChain;
 class Renderpass;
 class Window;
 class CommandBuffer;
+class DescriptorSet;
 class SceneManager
 {
 public:
@@ -19,7 +20,7 @@ public:
 	uint32_t getCurrentFrame() const { return m_CurrentFrame; }
 
 	void loadModel();
-	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers);
+	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets);
 	void createSyncObjects();
 
 	void cleanupScene();

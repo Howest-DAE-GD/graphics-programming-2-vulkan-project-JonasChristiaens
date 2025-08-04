@@ -20,7 +20,7 @@ public:
 
 	std::vector<VkImageView> getTextureImageViews() const { return m_TextureImageViews; }
 	VkSampler getTextureSampler() const { return m_TextureSampler; }
-	uint32_t getMipLevels() const { return m_MipLevels; }
+	std::vector<uint32_t> getMipLevels() const { return m_MipLevels; }
 
 private:
 	// private member variables
@@ -32,9 +32,9 @@ private:
 	std::vector<VkImage> m_TextureImages;
 	std::vector<VkDeviceMemory> m_TextureImageMemories;
 	std::vector<VkImageView> m_TextureImageViews;
+	std::vector<uint32_t> m_MipLevels;
 
 	VkSampler m_TextureSampler = VK_NULL_HANDLE;
-	uint32_t m_MipLevels = 0;
 
 	// private member functions
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);

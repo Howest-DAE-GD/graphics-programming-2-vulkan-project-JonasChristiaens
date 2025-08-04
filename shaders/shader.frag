@@ -1,6 +1,13 @@
 #version 450
 
-layout(binding = 1) uniform sampler2D texSampler;
+layout(constant_id = 0) const uint TEXTURE_ARRAY_SIZE = 1;
+layout(push_constant) uniform constants 
+{
+    uint textureIndex;
+} pushConstants;
+
+layout(set = 0, binding = 0) uniform sampler sharedSampler;
+layout(set = 0, binding = 1) uniform texture2D textures[TEXTURE_ARRAY_SIZE];
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
@@ -11,5 +18,6 @@ layout(location = 4) in vec3 fragBiTangent;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    outColor = texture(texSampler, fragTexCoord);
+    sampler2D tex = sampler2D(textures[pushConstants.textureIndex], sharedSampler);
+    outColor = texture(tex, fragTexCoord);
 }

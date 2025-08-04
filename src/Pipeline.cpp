@@ -8,9 +8,10 @@
 
 #include <stdexcept>
 
-Pipeline::Pipeline(Device* device, DescriptorSetLayout* descriptorSetLayout, Renderpass* renderpass)
+Pipeline::Pipeline(Device* device, DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, Renderpass* renderpass)
 	: m_pDevice(device)
-	, m_pDescriptorSetLayout(descriptorSetLayout)
+	, m_pGlobalDescriptorSetLayout(globalDescriptorSetLayout)
+    , m_pUboDescriptorSetLayout(uboDescriptorSetLayout)
     , m_pRenderpass(renderpass)
 {
 	createGraphicsPipeline();
@@ -116,10 +117,22 @@ void Pipeline::createGraphicsPipeline()
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
+    VkPushConstantRange pushConstantRange = {};
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(uint32_t);
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayout setLayouts[] = {
+        m_pGlobalDescriptorSetLayout->getDescriptorSetLayout(),   // set = 0
+        m_pUboDescriptorSetLayout->getDescriptorSetLayout()   // set = 1
+    };
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &m_pDescriptorSetLayout->getDescriptorSetLayout(); // referencing layout object
+    pipelineLayoutInfo.setLayoutCount = 2;
+    pipelineLayoutInfo.pSetLayouts = setLayouts; // referencing layout object
+    pipelineLayoutInfo.pushConstantRangeCount = 1; // Optional
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange; // Optional
 
     if (vkCreatePipelineLayout(m_pDevice->getDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
     {

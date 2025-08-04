@@ -8,7 +8,7 @@ class Pipeline
 {
 public:
 	// constructor & destructor
-	Pipeline(Device* device, DescriptorSetLayout* descriptorSetLayout, Renderpass* renderpass);
+	Pipeline(Device* device, DescriptorSetLayout* GlobaldescriptorSetLayout, DescriptorSetLayout* UbodescriptorSetLayout, Renderpass* renderpass);
 	~Pipeline() = default;
 
 	// public member functions
@@ -19,7 +19,8 @@ public:
 private:
 	// private member variables
 	Device* m_pDevice = nullptr;
-	DescriptorSetLayout* m_pDescriptorSetLayout = nullptr;
+	DescriptorSetLayout* m_pGlobalDescriptorSetLayout = nullptr;
+	DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;
 	Renderpass* m_pRenderpass = nullptr;
 
 	VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;

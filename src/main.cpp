@@ -12,6 +12,7 @@
 #include "Image.h"
 #include "Renderpass.h"
 #include "DescriptorSetLayout.h"
+#include "DescriptorSet.h"
 #include "Pipeline.h"
 #include "CommandPool.h"
 #include "Texture.h"
@@ -30,7 +31,7 @@ public:
     {
        m_pTimer = new Timer();
        m_pWindow = new Window("Vulkan");
-       m_Camera = std::make_unique<Camera>(glm::vec3{ 0.0f, 0.0f, 0.0f }, 45.0f, aspectRatio, 0.1f, 100.0f);
+       //m_Camera = std::make_unique<Camera>(glm::vec3{ 0.0f, 0.0f, 0.0f }, 45.0f, aspectRatio, 0.1f, 100.0f);
        initVulkan();
        mainLoop();
        cleanup();
@@ -43,7 +44,7 @@ private:
     Window* m_pWindow = nullptr;
 
     Timer* m_pTimer = nullptr;
-    std::unique_ptr<Camera> m_Camera;
+    //std::unique_ptr<Camera> m_Camera;
 
     Instance* m_pInstance = nullptr;
 	Surface* m_pSurface = nullptr;
@@ -51,9 +52,11 @@ private:
     SwapChain* m_pSwapChain = nullptr;
     Renderpass* m_pRenderpass = nullptr;
 
-	DescriptorSetLayout* m_pDescriptorSetLayout = nullptr;
-	/*DescriptorSetLayout* m_pSamplerDescriptorSetLayout = nullptr;
-	DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;*/
+    DescriptorSet* m_pGlobalDescriptorSet = nullptr;
+	DescriptorSetLayout* m_pGlobalDescriptorSetLayout = nullptr;
+
+    std::vector<DescriptorSet*> m_pUboDescriptorSets{};
+	DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;
 
 	Pipeline* m_pPipeline = nullptr;
 	CommandPool* m_pCommandPool = nullptr;
@@ -61,8 +64,6 @@ private:
 
 	std::vector<Buffer*> m_pVertexBuffers{};
     std::vector<Buffer*> m_pIndexBuffers{};
-    Buffer* m_pVertexBuffer = nullptr;
-    Buffer* m_pIndexBuffer = nullptr;;
 
     std::vector<Buffer*> m_pUniformBuffers{};
     std::vector<void*> m_UniformBuffersMapped{};
@@ -81,10 +82,8 @@ private:
 		m_pDevice = new Device(m_pSurface, m_pInstance); // pickPhysicalDevice & createLogicalDevice
 		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface); // createSwapChain & createImageViews
         m_pRenderpass = new Renderpass(m_pDevice, m_pSwapChain); // createRenderPass
-        m_pDescriptorSetLayout = new DescriptorSetLayout(m_pDevice); // createDescriptorSetLayout
-		m_pPipeline = new Pipeline(m_pDevice, m_pDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
-		m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
+        m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
         m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain, m_pRenderpass);
         m_pSceneManager->loadModel(); // loadModel
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool, m_pSceneManager); // createTextureImage, createTextureImageView, createTextureSampler
@@ -102,10 +101,12 @@ private:
         }
 
         createUniformBuffers();
-
-        m_pDescriptorPool = new DescriptorPool(m_pDevice, m_pTexture, m_pDescriptorSetLayout, m_pUniformBuffers); // createDescriptorPool & createDescriptorSets
         
-        m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pRenderpass, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pDescriptorPool, m_pSceneManager);
+        m_pDescriptorPool = new DescriptorPool(m_pDevice, m_pTexture); // createDescriptorPool & createDescriptorSets
+        createDescriptorSets();
+		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
+
+        m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pRenderpass, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pSceneManager);
         m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects
     }
@@ -115,8 +116,8 @@ private:
        // Loop until the user closes the window
        while (!m_pWindow->shouldClose()) {
            m_pWindow->pollEvents();
-           m_Camera->Update(m_pTimer);
-           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer);
+           //m_Camera->Update(m_pTimer);
+           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSets);
        }
 
        vkDeviceWaitIdle(m_pDevice->getDevice());
@@ -133,9 +134,16 @@ private:
         }
 
         m_pDescriptorPool->cleanupDescriptorPool();
-		m_pDescriptorSetLayout->cleanupDescriptorSetLayout();
-        m_pIndexBuffer->cleanupBuffer();
-        m_pVertexBuffer->cleanupBuffer();
+        m_pGlobalDescriptorSetLayout->cleanupDescriptorSetLayout();
+        m_pUboDescriptorSetLayout->cleanupDescriptorSetLayout();
+
+        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
+            m_pIndexBuffers[idx]->cleanupBuffer();
+        }
+        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
+            m_pVertexBuffers[idx]->cleanupBuffer();
+        }
+
         m_pPipeline->cleanupPipelines();
 		m_pRenderpass->cleanupRenderPass();
         m_pSceneManager->cleanupScene();
@@ -148,16 +156,25 @@ private:
 
         // delete Pointers
         delete m_pSceneManager;
+
         for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
             delete m_pUniformBuffers[idx];
         }
+
         delete m_pDescriptorPool;
-        delete m_pVertexBuffer;
-        delete m_pIndexBuffer;
+
+        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
+            delete m_pVertexBuffers[idx];
+        }
+        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
+            delete m_pIndexBuffers[idx];
+        }
+
         delete m_pTexture;
 		delete m_pCommandPool;
         delete m_pPipeline;
-		delete m_pDescriptorSetLayout;
+		delete m_pGlobalDescriptorSet;
+		delete m_pUboDescriptorSetLayout;
         delete m_pRenderpass;
         delete m_pSwapChain;
         delete m_pDevice;
@@ -169,6 +186,29 @@ private:
     bool hasStencilComponent(VkFormat format) 
     {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+    }
+
+    void createDescriptorSets()
+    {
+        // Create Global Descriptor Set
+        m_pGlobalDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
+		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getTexturePaths().size() - 2); // 26 textures in the m_texturePaths vector, but when debugging index 0 and 13 are empty (?) -> -2
+
+		m_pGlobalDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pGlobalDescriptorSetLayout, m_pDescriptorPool); 
+        m_pGlobalDescriptorSet->createDescriptorSets();
+		m_pGlobalDescriptorSet->updateGlobalDescriptorSets(m_pSceneManager->getTexturePaths().size() - 2); // 26 textures in the m_texturePaths vector, but when debugging index 0 and 13 are empty (?) -> -2
+
+        // Create Ubo Descriptor Set
+        m_pUboDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
+		m_pUboDescriptorSetLayout->createUboDescriptorSetLayout();
+
+        for (int idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++)
+        {
+            m_pUboDescriptorSets.push_back(new DescriptorSet(m_pDevice, m_pTexture, m_pUboDescriptorSetLayout, m_pDescriptorPool)); 
+            m_pUboDescriptorSets[idx]->createDescriptorSets(); 
+
+            m_pUboDescriptorSets[idx]->updateUboDescriptorSets(m_pUniformBuffers);
+        }
     }
 
     // Function that allocates the buffers

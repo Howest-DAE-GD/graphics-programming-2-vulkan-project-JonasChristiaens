@@ -8,13 +8,13 @@
 #include "SwapChain.h"
 #include "Pipeline.h"
 #include "Buffer.h"
-#include "DescriptorPool.h"
 #include "SceneManager.h"
+#include "DescriptorSet.h"
 #include <stdexcept>
 #include <iostream>
 
 CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, Renderpass* renderpass, SwapChain* swapChain, Pipeline* pipeline, std::vector<Buffer*> vertexBuffer,
-    std::vector<Buffer*> indexBuffer, DescriptorPool* descriptor, SceneManager* sceneManager)
+    std::vector<Buffer*> indexBuffer, SceneManager* sceneManager)
 	: m_pDevice(device)
 	, m_pCommandPool(commandPool)
     , m_pRenderpass(renderpass)
@@ -22,7 +22,6 @@ CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, Renderpas
     , m_pPipeline(pipeline)
     , m_pVertexBuffers(vertexBuffer)
     , m_pIndexBuffers(indexBuffer)
-    , m_pDescriptorPool(descriptor)
     , m_pSceneManager(sceneManager)
 {
 }
@@ -42,7 +41,7 @@ void CommandBuffer::createCommandBuffers()
 	}
 }
 
-void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes)
+void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -91,7 +90,11 @@ void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
         vkCmdBindIndexBuffer(commandBuffer, m_pIndexBuffers[i]->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
         // Bind descriptor set
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &m_pDescriptorPool->getDescriptorSets()[m_pSceneManager->getCurrentFrame()], 0, nullptr);
+        // global
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &globalDescriptorSet->getDescriptorSets(), 0, nullptr);
+        
+        // ubo
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 1, 1, &uboDescriptorSets[m_pSceneManager->getCurrentFrame()]->getDescriptorSets(), 0, nullptr);
 
         // New draw to use indexbuffer
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Meshes[i].indices.size()), 1, 0, 0, 0);
