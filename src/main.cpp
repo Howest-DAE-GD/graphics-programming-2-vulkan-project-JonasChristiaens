@@ -102,10 +102,20 @@ private:
 
         createUniformBuffers();
         
-        m_pDescriptorPool = new DescriptorPool(m_pDevice, m_pTexture); // createDescriptorPool & createDescriptorSets
-        createDescriptorSets();
-		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
+        // Calculate descriptor pool requirements
+        size_t numTextures = m_pSceneManager->getTexturePaths().size() - 2;
+        const uint32_t maxFramesInFlight = MAX_FRAMES_IN_FLIGHT;
 
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxFramesInFlight },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(numTextures) }
+        };
+        uint32_t maxSets = 1 + maxFramesInFlight;
+
+        m_pDescriptorPool = new DescriptorPool(m_pDevice, poolSizes, maxSets); // createDescriptorPool
+        createDescriptorSets();
+
+		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
         m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pRenderpass, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pSceneManager);
         m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects

@@ -35,34 +35,39 @@ void DescriptorSet::createDescriptorSets()
 
 void DescriptorSet::updateGlobalDescriptorSets(uint32_t textureCount)
 {
-    std::vector<VkDescriptorImageInfo> imageInfo(textureCount);
+    VkDescriptorImageInfo samplerInfo{};
+    samplerInfo.sampler = m_pTexture->getTextureSampler();
+    samplerInfo.imageView = VK_NULL_HANDLE;
+    samplerInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    for (int idx{}; idx < textureCount; idx++)
+    std::vector<VkDescriptorImageInfo> imageInfos(textureCount);
+    for (uint32_t idx = 0; idx < textureCount; ++idx)
     {
-        imageInfo[idx].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo[idx].imageView = m_pTexture->getTextureImageViews()[idx];
-        imageInfo[idx].sampler = m_pTexture->getTextureSampler();
+        imageInfos[idx].imageView = m_pTexture->getTextureImageViews()[idx];
+        imageInfos[idx].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfos[idx].sampler = VK_NULL_HANDLE;
     }
 
     std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
+    // binding 0: sampler
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = m_DescriptorSet; // specify descriptor set to update
-    descriptorWrites[0].dstBinding = 0; // specify binding within the set
-    descriptorWrites[0].dstArrayElement = 0; // specify array element within binding
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER; // specify type of descriptor
-    descriptorWrites[0].descriptorCount = 1; // specify number of descriptors to update
-    descriptorWrites[0].pImageInfo = imageInfo.data(); // specify array of descriptors
+    descriptorWrites[0].dstSet = m_DescriptorSet;
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pImageInfo = &samplerInfo;
 
+    // binding 1: sampled images
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = m_DescriptorSet;
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     descriptorWrites[1].descriptorCount = textureCount;
-    descriptorWrites[1].pImageInfo = imageInfo.data();
+    descriptorWrites[1].pImageInfo = imageInfos.data();
 
-    // update descriptor set
     vkUpdateDescriptorSets(m_pDevice->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
