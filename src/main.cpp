@@ -38,9 +38,7 @@ public:
     }
 
 private:
-    // =======================
     // Private class variables
-    // =======================
     Window* m_pWindow = nullptr;
 
     Timer* m_pTimer = nullptr;
@@ -72,9 +70,7 @@ private:
     CommandBuffer* m_pCommandBuffer = nullptr;
     SceneManager* m_pSceneManager = nullptr;
 
-    // =======================
     // Private class Functions
-	// =======================
     void initVulkan() 
     {
         m_pInstance = new Instance(); // createInstance & setupDebugMessenger

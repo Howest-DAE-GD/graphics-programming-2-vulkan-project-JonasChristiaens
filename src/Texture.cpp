@@ -32,6 +32,7 @@ void Texture::createTextureImage()
         if (path.empty())
         {
             m_TextureImages.push_back(VK_NULL_HANDLE);
+            m_TextureImageMemories.push_back(VK_NULL_HANDLE);
             m_MipLevels.push_back(0);
             continue;
         }
