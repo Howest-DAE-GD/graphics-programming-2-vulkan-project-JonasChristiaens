@@ -207,9 +207,11 @@ void SceneManager::updateUniformBuffer(uint32_t currentImage, std::vector<void*>
 
     // Define model, view and projection transformations in UBO
     UniformBufferObject ubo{};
-    ubo.model = glm::scale(glm::mat4(1.0), glm::vec3(.01f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), m_pSwapChain->getExtent().width / (float)m_pSwapChain->getExtent().height, 0.1f, 10.0f);
+    ubo.model = glm::mat4(1.0f);
+    ubo.model = glm::rotate(ubo.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    ubo.model = glm::scale(ubo.model, glm::vec3(0.01f));
+    ubo.view = glm::lookAt(glm::vec3(1.f, 0.f, 2.f), glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 0.f, 1.f));
+    ubo.proj = glm::perspective(glm::radians(45.0f), m_pSwapChain->getExtent().width / (float)m_pSwapChain->getExtent().height, 0.1f, 20.0f);
     ubo.proj[1][1] *= -1;
 
     // Copy data in UBO to current uniform buffer (! without staging buffer)
