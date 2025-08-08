@@ -103,7 +103,7 @@ private:
         createUniformBuffers();
         
         // Calculate descriptor pool requirements
-        size_t numTextures = m_pSceneManager->getTexturePaths().size() - 2;
+        size_t numTextures = m_pSceneManager->getTexturePaths().size();
         const uint32_t maxFramesInFlight = MAX_FRAMES_IN_FLIGHT;
 
         std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -202,11 +202,11 @@ private:
     {
         // Create Global Descriptor Set
         m_pGlobalDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
-		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getTexturePaths().size()); // 26 textures in the m_texturePaths vector, but when debugging index 0 and 13 are empty (?) -> -2
+		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getTexturePaths().size());
 
 		m_pGlobalDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pGlobalDescriptorSetLayout, m_pDescriptorPool); 
         m_pGlobalDescriptorSet->createDescriptorSets();
-		m_pGlobalDescriptorSet->updateGlobalDescriptorSets(m_pSceneManager->getTexturePaths().size() - 2); // 26 textures in the m_texturePaths vector, but when debugging index 0 and 13 are empty (?) -> -2
+		m_pGlobalDescriptorSet->updateGlobalDescriptorSets(m_pSceneManager->getTexturePaths().size()); 
 
         // Create Ubo Descriptor Set
         m_pUboDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);

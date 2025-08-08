@@ -27,7 +27,14 @@ void Texture::createTextureImage()
 {
     for (auto path : m_pSceneManager->getTexturePaths())
     {
-        if (path.empty()) continue;
+        //if (path.empty()) continue;
+
+        if (path.empty())
+        {
+            m_TextureImages.push_back(VK_NULL_HANDLE);
+            m_MipLevels.push_back(0);
+            continue;
+        }
 
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -85,6 +92,12 @@ void Texture::createTextureImageView()
 {
     m_TextureImageViews.clear();
     for (size_t i = 0; i < m_TextureImages.size(); i++) {
+        if (m_TextureImages[i] == VK_NULL_HANDLE)
+        {
+            m_TextureImageViews.push_back(VK_NULL_HANDLE);
+            continue;
+        }
+
         VkImageView imageView = Image::createImageView(m_TextureImages[i],
             VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT,
             m_MipLevels[i], m_pDevice);

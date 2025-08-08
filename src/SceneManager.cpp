@@ -41,8 +41,9 @@ void SceneManager::loadModel()
         return;
     }
 
-	m_texturePaths.resize(scene->mNumMaterials);
-	m_normalPaths.resize(scene->mNumMaterials);
+    // 26 textures in the m_texturePaths vector, but when debugging index 0 and 13 are empty (?) -> -2
+	m_texturePaths.resize(scene->mNumMaterials -1); 
+	m_normalPaths.resize(scene->mNumMaterials - 1);
     
     const aiMatrix4x4 root = scene->mRootNode->mTransformation;
     for (unsigned int m = 0; m < scene->mNumMeshes; m++)
@@ -75,21 +76,23 @@ void SceneManager::loadModel()
 
         // Store material index
         newMesh.materialIndex = mesh->mMaterialIndex;
-		m_Meshes.push_back(newMesh);
 
         // load material textures
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+        --newMesh.materialIndex;
         aiString texPath;
 
         if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
-            m_texturePaths[mesh->mMaterialIndex] = "models\\" + std::string(texPath.C_Str());
+            m_texturePaths[newMesh.materialIndex] = "models\\" + std::string(texPath.C_Str());
         }
 
         if (material->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS) {
-            m_normalPaths[mesh->mMaterialIndex] = "models\\" + std::string(texPath.C_Str());
+            m_normalPaths[newMesh.materialIndex] = "models\\" + std::string(texPath.C_Str());
         }
+		
+        m_Meshes.push_back(newMesh);
     }
-
+	std::cout << "sus" << std::endl;
 }
 
 void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets)
