@@ -5,7 +5,6 @@
 
 class Device;
 class SwapChain;
-class Renderpass;
 class Window;
 class CommandBuffer;
 class DescriptorSet;
@@ -13,7 +12,7 @@ class SceneManager
 {
 public:
 	// constructor & destructor
-	SceneManager(Device* device, SwapChain* spawChain, Renderpass* renderpass);
+	SceneManager(Device* device, SwapChain* spawChain);
 	~SceneManager() = default;
 
 	// public member functions
@@ -31,7 +30,6 @@ private:
 	// private member variables
 	Device* m_pDevice{};
 	SwapChain* m_pSwapChain{};
-	Renderpass* m_pRenderpass{};
 
 	std::vector<VkSemaphore> m_ImageAvailableSemaphores{};
 	std::vector<VkSemaphore> m_RenderFinishedSemaphores{};

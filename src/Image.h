@@ -17,7 +17,7 @@ public:
 
 	void cleanup();
 	void createColorResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples, VkFormat colorFormat);
-	void createDepthResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples);
+	void createDepthResources(uint32_t width, uint32_t height);
 	void createImage(uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 	VkFormat findDepthFormat();
 

@@ -72,6 +72,7 @@ void Device::createLogicalDevice()
     // Set up synchronization2 feature
     VkPhysicalDeviceVulkan13Features features = {};
     features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    features.dynamicRendering = VK_TRUE;
     features.synchronization2 = VK_TRUE;
 
     // Set up base device features

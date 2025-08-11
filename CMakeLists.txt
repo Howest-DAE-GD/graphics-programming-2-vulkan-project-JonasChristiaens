@@ -87,7 +87,6 @@ set(${PROJECT_NAME}_SOURCES
     "src/Device.cpp"
     "src/SwapChain.cpp"
     "src/Image.cpp"
-    "src/RenderPass.cpp"
     "src/DescriptorSet.cpp"
     "src/DescriptorSetLayout.cpp"
     "src/Pipeline.cpp"

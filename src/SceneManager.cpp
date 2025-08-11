@@ -4,7 +4,6 @@
 
 #include "Device.h"
 #include "SwapChain.h"
-#include "RenderPass.h"
 #include "Window.h"
 #include "CommandBuffer.h"
 
@@ -16,10 +15,9 @@
 #include <chrono>
 #include <iostream>
 
-SceneManager::SceneManager(Device* device, SwapChain* spawChain, Renderpass* renderpass)
+SceneManager::SceneManager(Device* device, SwapChain* spawChain)
     : m_pDevice(device)
     , m_pSwapChain(spawChain)
-    , m_pRenderpass(renderpass)
 {
 }
 
@@ -41,8 +39,8 @@ void SceneManager::loadModel()
         return;
     }
 
-    // 26 textures in the m_texturePaths vector, but when debugging index 0 and 13 are empty (?) -> -2
-	m_texturePaths.resize(scene->mNumMaterials -1); 
+    // 26 textures in the m_texturePaths vector, but when debugging index 0 and 13 are empty (?)
+	m_texturePaths.resize(scene->mNumMaterials - 1); 
 	m_normalPaths.resize(scene->mNumMaterials - 1);
     
     const aiMatrix4x4 root = scene->mRootNode->mTransformation;
@@ -103,7 +101,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(m_pDevice->getDevice(), m_pSwapChain->getSwapChain(), UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        m_pSwapChain->recreateSwapChain(m_pRenderpass);
+        m_pSwapChain->recreateSwapChain();
         return;
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -158,7 +156,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     result = vkQueuePresentKHR(m_pDevice->getPresentQueue(), &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window->wasWindowResized()) {
         window->resetWindowResizedFlag();
-        m_pSwapChain->recreateSwapChain(m_pRenderpass);
+        m_pSwapChain->recreateSwapChain();
     }
     else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");

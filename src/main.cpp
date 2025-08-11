@@ -10,7 +10,6 @@
 #include "Device.h"
 #include "SwapChain.h"
 #include "Image.h"
-#include "Renderpass.h"
 #include "DescriptorSetLayout.h"
 #include "DescriptorSet.h"
 #include "Pipeline.h"
@@ -48,7 +47,6 @@ private:
 	Surface* m_pSurface = nullptr;
 	Device* m_pDevice = nullptr;
     SwapChain* m_pSwapChain = nullptr;
-    Renderpass* m_pRenderpass = nullptr;
 
     DescriptorSet* m_pGlobalDescriptorSet = nullptr;
 	DescriptorSetLayout* m_pGlobalDescriptorSetLayout = nullptr;
@@ -77,10 +75,9 @@ private:
 		m_pSurface = new Surface(m_pInstance, m_pWindow->getGLFWwindow()); // createSurface
 		m_pDevice = new Device(m_pSurface, m_pInstance); // pickPhysicalDevice & createLogicalDevice
 		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface); // createSwapChain & createImageViews
-        m_pRenderpass = new Renderpass(m_pDevice, m_pSwapChain); // createRenderPass
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
-        m_pSwapChain->createResources(m_pRenderpass); // createColorResources, createDepthResources,createFramebuffers
-        m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain, m_pRenderpass);
+        m_pSwapChain->createResources(); // createColorResources, createDepthResources,createFramebuffers
+        m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain/*, m_pRenderpass*/);
         m_pSceneManager->loadModel(); // loadModel
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool, m_pSceneManager); // createTextureImage, createTextureImageView, createTextureSampler
 
@@ -111,8 +108,8 @@ private:
         m_pDescriptorPool = new DescriptorPool(m_pDevice, poolSizes, maxSets); // createDescriptorPool
         createDescriptorSets();
 
-		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pRenderpass); // createGraphicsPipeline
-        m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pRenderpass, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pSceneManager);
+		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pSwapChain); // createGraphicsPipeline
+        m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pSceneManager);
         m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects
     }
@@ -151,7 +148,6 @@ private:
         }
 
         m_pPipeline->cleanupPipelines();
-		m_pRenderpass->cleanupRenderPass();
         m_pSceneManager->cleanupScene();
         m_pCommandPool->destroyCommandPool();
         m_pDevice->cleanupDevice();
@@ -181,7 +177,6 @@ private:
         delete m_pPipeline;
 		delete m_pGlobalDescriptorSet;
 		delete m_pUboDescriptorSetLayout;
-        delete m_pRenderpass;
         delete m_pSwapChain;
         delete m_pDevice;
 		delete m_pSurface;

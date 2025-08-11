@@ -4,15 +4,15 @@
 
 #include "Device.h"
 #include "DescriptorSetLayout.h"
-#include "Renderpass.h"
+#include "SwapChain.h"
 
 #include <stdexcept>
 
-Pipeline::Pipeline(Device* device, DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, Renderpass* renderpass)
+Pipeline::Pipeline(Device* device, DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, SwapChain* swapChain)
 	: m_pDevice(device)
 	, m_pGlobalDescriptorSetLayout(globalDescriptorSetLayout)
     , m_pUboDescriptorSetLayout(uboDescriptorSetLayout)
-    , m_pRenderpass(renderpass)
+	, m_pSwapChain(swapChain)
 {
 	createGraphicsPipeline();
 }
@@ -85,7 +85,7 @@ void Pipeline::createGraphicsPipeline()
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = m_pDevice->getMsaaSamples();
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     multisampling.sampleShadingEnable = VK_TRUE; // enable sample shading in the pipeline
     multisampling.minSampleShading = .2f; // min fraction for sample shading; closer to one is smoother
 
@@ -152,9 +152,21 @@ void Pipeline::createGraphicsPipeline()
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_PipelineLayout;
-    pipelineInfo.renderPass = m_pRenderpass->getRenderPass();
+    pipelineInfo.renderPass = VK_NULL_HANDLE;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+    // Setup dynamic rendering info
+    VkPipelineRenderingCreateInfo renderingCreateInfo{};
+    renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    VkFormat colorFormat = m_pSwapChain->getImageFormat();
+    VkFormat depthFormat = m_pSwapChain->m_pImage->findDepthFormat();
+    renderingCreateInfo.colorAttachmentCount = 1;
+    renderingCreateInfo.pColorAttachmentFormats = &colorFormat;
+    renderingCreateInfo.depthAttachmentFormat = depthFormat;
+    renderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+    pipelineInfo.pNext = &renderingCreateInfo;
 
     if (vkCreateGraphicsPipelines(m_pDevice->getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_GraphicsPipeline) != VK_SUCCESS)
     {

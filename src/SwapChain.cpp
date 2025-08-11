@@ -5,7 +5,6 @@
 #include "Device.h"
 #include "Window.h"
 #include "Surface.h"
-#include "Renderpass.h"
 #include <stdexcept>
 #include <algorithm>
 
@@ -81,17 +80,13 @@ void SwapChain::cleanupSwapChain()
 {
     m_pImage->cleanup();
 
-    for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++) {
-        vkDestroyFramebuffer(m_pDevice->getDevice(), m_SwapChainFramebuffers[i], nullptr);
-    }
-
     for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
         vkDestroyImageView(m_pDevice->getDevice(), m_SwapChainImageViews[i], nullptr);
     }
 
     vkDestroySwapchainKHR(m_pDevice->getDevice(), m_SwapChain, nullptr);
 }
-void SwapChain::recreateSwapChain(Renderpass* renderpass)
+void SwapChain::recreateSwapChain()
 {
     int width = 0, height = 0;
     while (width == 0 || height == 0)
@@ -106,7 +101,7 @@ void SwapChain::recreateSwapChain(Renderpass* renderpass)
 
     createSwapChain();
     createImageViews();
-    createResources(renderpass);
+    createResources();
 }
 
 VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
@@ -158,34 +153,8 @@ void SwapChain::createImageViews()
         m_SwapChainImageViews[i] = Image::createImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_pDevice);
     }
 }
-void SwapChain::createResources(Renderpass* renderpass)
+void SwapChain::createResources()
 {
     m_pImage->createColorResources(m_SwapChainExtent.width, m_SwapChainExtent.height, m_pDevice->getMsaaSamples(), m_SwapChainImageFormat);
-    m_pImage->createDepthResources(m_SwapChainExtent.width, m_SwapChainExtent.height, m_pDevice->getMsaaSamples());
-    createFramebuffers(renderpass);
-}
-void SwapChain::createFramebuffers(Renderpass* renderpass)
-{
-    m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
-
-    for (size_t idx = 0; idx < m_SwapChainImageViews.size(); idx++)
-    {
-        std::array<VkImageView, 3> attachments = {
-        m_pImage->getColorImageView(),
-        m_pImage->getDepthImageView(),
-        m_SwapChainImageViews[idx]
-        };
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = renderpass->getRenderPass();
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = m_SwapChainExtent.width;
-        framebufferInfo.height = m_SwapChainExtent.height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(m_pDevice->getDevice(), &framebufferInfo, nullptr, &m_SwapChainFramebuffers[idx]) != VK_SUCCESS)
-            throw std::runtime_error("failed to create framebuffer!");
-    }
+    m_pImage->createDepthResources(m_SwapChainExtent.width, m_SwapChainExtent.height);
 }

@@ -5,7 +5,6 @@
 class Device;
 class Window;
 class Surface;
-class Renderpass;
 class SwapChain
 {
 public:
@@ -16,16 +15,16 @@ public:
 	// public member functions
 	void createSwapChain();
 	void cleanupSwapChain();
-	void recreateSwapChain(Renderpass* renderpass);
+	void recreateSwapChain();
 
 	void createImageViews();
-	void createResources(Renderpass* renderpass);
+	void createResources();
 	
 	VkSwapchainKHR getSwapChain() const { return m_SwapChain; }
 	VkFormat getImageFormat() const { return m_SwapChainImageFormat; }
 	VkExtent2D getExtent() const { return m_SwapChainExtent; }
 	const std::vector<VkImageView>& getImageViews() const { return m_SwapChainImageViews; }
-	const std::vector<VkFramebuffer>& getFramebuffers() const { return m_SwapChainFramebuffers; }
+	const std::vector<VkImage>& getSwapChainImages() const { return m_SwapChainImages; }
 
 	// public member variables
 	Image* m_pImage;
@@ -41,12 +40,9 @@ private:
 	VkFormat m_SwapChainImageFormat{};
 	VkExtent2D m_SwapChainExtent{};
 	std::vector<VkImageView> m_SwapChainImageViews{};
-	std::vector<VkFramebuffer> m_SwapChainFramebuffers{};
 
 	// private member functions
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-
-	void createFramebuffers(Renderpass* renderpass);
 };

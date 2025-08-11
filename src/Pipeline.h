@@ -3,12 +3,12 @@
 
 class Device;
 class DescriptorSetLayout;
-class Renderpass;
+class SwapChain;
 class Pipeline
 {
 public:
 	// constructor & destructor
-	Pipeline(Device* device, DescriptorSetLayout* GlobaldescriptorSetLayout, DescriptorSetLayout* UbodescriptorSetLayout, Renderpass* renderpass);
+	Pipeline(Device* device, DescriptorSetLayout* GlobaldescriptorSetLayout, DescriptorSetLayout* UbodescriptorSetLayout, SwapChain* swapChain);
 	~Pipeline() = default;
 
 	// public member functions
@@ -21,7 +21,7 @@ private:
 	Device* m_pDevice = nullptr;
 	DescriptorSetLayout* m_pGlobalDescriptorSetLayout = nullptr;
 	DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;
-	Renderpass* m_pRenderpass = nullptr;
+	SwapChain* m_pSwapChain = nullptr;
 
 	VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 	VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;

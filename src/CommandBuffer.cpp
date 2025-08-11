@@ -4,7 +4,6 @@
 
 #include "Device.h"
 #include "CommandPool.h"
-#include "Renderpass.h"
 #include "SwapChain.h"
 #include "Pipeline.h"
 #include "Buffer.h"
@@ -13,11 +12,10 @@
 #include <stdexcept>
 #include <iostream>
 
-CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, Renderpass* renderpass, SwapChain* swapChain, Pipeline* pipeline, std::vector<Buffer*> vertexBuffer,
+CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, SwapChain* swapChain, Pipeline* pipeline, std::vector<Buffer*> vertexBuffer,
     std::vector<Buffer*> indexBuffer, SceneManager* sceneManager)
 	: m_pDevice(device)
 	, m_pCommandPool(commandPool)
-    , m_pRenderpass(renderpass)
     , m_pSwapChain(swapChain)
     , m_pPipeline(pipeline)
     , m_pVertexBuffers(vertexBuffer)
@@ -49,64 +47,117 @@ void CommandBuffer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t 
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("failed to begin recording command buffer!");
 
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_pRenderpass->getRenderPass();
-    renderPassInfo.framebuffer = m_pSwapChain->getFramebuffers()[imageIndex];
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = m_pSwapChain->getExtent();
+    // Manual layout transitions for color image
+    VkImageMemoryBarrier colorBarrier{};
+    colorBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    colorBarrier.srcAccessMask = 0;
+    colorBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    colorBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    colorBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    colorBarrier.image = m_pSwapChain->getSwapChainImages()[imageIndex];
+    colorBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    colorBarrier.subresourceRange.baseMipLevel = 0;
+    colorBarrier.subresourceRange.levelCount = 1;
+    colorBarrier.subresourceRange.baseArrayLayer = 0;
+    colorBarrier.subresourceRange.layerCount = 1;
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-    clearValues[1].depthStencil = { 1.0f, 0 };
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        0, 0, nullptr, 0, nullptr, 1, &colorBarrier);
 
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
+    // Setup dynamic rendering structure
+    VkRenderingAttachmentInfo colorAttachment{};
+    colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    colorAttachment.imageView = m_pSwapChain->getImageViews()[imageIndex];
+    colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    VkClearValue clearValue = { .color = { {1.0f, 1.0f, 0.0f, 1.0f} } };
+    colorAttachment.clearValue = clearValue;
 
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getGraphicsPipeline());
+    VkRenderingAttachmentInfoKHR depthAttachment{};
+    depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+    depthAttachment.imageView = m_pSwapChain->m_pImage->getDepthImageView();
+    depthAttachment.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachment.clearValue = clearValue;
 
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(m_pSwapChain->getExtent().width);
-    viewport.height = static_cast<float>(m_pSwapChain->getExtent().height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    VkRenderingInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    renderingInfo.renderArea.offset = { 0, 0 };
+    renderingInfo.renderArea.extent = m_pSwapChain->getExtent();
+    renderingInfo.layerCount = 1;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachments = &colorAttachment;
+	renderingInfo.pDepthAttachment = &depthAttachment;
 
-    VkRect2D scissor{};
-    scissor.offset = { 0, 0 };
-    scissor.extent = m_pSwapChain->getExtent();
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    vkCmdBeginRendering(commandBuffer, &renderingInfo);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getGraphicsPipeline());
 
-    // Bind index buffer
-    for (int i{}; i < m_pIndexBuffers.size(); ++i)
-    {
-        VkBuffer vertexBuffers[]{ m_pVertexBuffers[i]->getBuffer() };
-        VkDeviceSize offsets[]{ 0 };
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(m_pSwapChain->getExtent().width);
+        viewport.height = static_cast<float>(m_pSwapChain->getExtent().height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-        vkCmdBindIndexBuffer(commandBuffer, m_pIndexBuffers[i]->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = m_pSwapChain->getExtent();
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        // Bind descriptor set
-        // global
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &globalDescriptorSet->getDescriptorSets(), 0, nullptr);
-        
-        // ubo
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 1, 1, &uboDescriptorSets[m_pSceneManager->getCurrentFrame()]->getDescriptorSets(), 0, nullptr);
+        // Bind index buffer
+        for (int i{}; i < m_pIndexBuffers.size(); ++i)
+        {
+            VkBuffer vertexBuffers[]{ m_pVertexBuffers[i]->getBuffer() };
+            VkDeviceSize offsets[]{ 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-		// push constants
-        vkCmdPushConstants(commandBuffer, m_pPipeline->getPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &Meshes[i].materialIndex);
+            vkCmdBindIndexBuffer(commandBuffer, m_pIndexBuffers[i]->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-        // New draw to use indexbuffer
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Meshes[i].indices.size()), 1, 0, 0, 0);
-    }
+            // Bind descriptor set
+            // global
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 0, 1, &globalDescriptorSet->getDescriptorSets(), 0, nullptr);
 
-    vkCmdEndRenderPass(commandBuffer);
+            // ubo
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pPipeline->getPipelineLayout(), 1, 1, &uboDescriptorSets[m_pSceneManager->getCurrentFrame()]->getDescriptorSets(), 0, nullptr);
+
+            // push constants
+            vkCmdPushConstants(commandBuffer, m_pPipeline->getPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &Meshes[i].materialIndex);
+
+            // New draw to use indexbuffer
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Meshes[i].indices.size()), 1, 0, 0, 0);
+        }
+
+    vkCmdEndRendering(commandBuffer);
+
+    VkImageMemoryBarrier presentBarrier{};
+    presentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    presentBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    presentBarrier.dstAccessMask = 0;
+    presentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    presentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    presentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    presentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    presentBarrier.image = m_pSwapChain->getSwapChainImages()[imageIndex];
+    presentBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    presentBarrier.subresourceRange.baseMipLevel = 0;
+    presentBarrier.subresourceRange.levelCount = 1;
+    presentBarrier.subresourceRange.baseArrayLayer = 0;
+    presentBarrier.subresourceRange.layerCount = 1;
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        0, 0, nullptr, 0, nullptr, 1, &presentBarrier);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");
     }
 }
-
