@@ -14,6 +14,7 @@ public:
 	
 	VkImageView getColorImageView() const { return m_ColorImageView; }
 	VkImageView getDepthImageView() const { return m_DepthImageView; }
+	VkImage getDepthImage() const { return m_DepthImage; }
 
 	void cleanup();
 	void createColorResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples, VkFormat colorFormat);

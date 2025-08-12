@@ -77,7 +77,7 @@ private:
 		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface); // createSwapChain & createImageViews
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
         m_pSwapChain->createResources(); // createColorResources, createDepthResources,createFramebuffers
-        m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain/*, m_pRenderpass*/);
+        m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain);
         m_pSceneManager->loadModel(); // loadModel
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool, m_pSceneManager); // createTextureImage, createTextureImageView, createTextureSampler
 
@@ -108,7 +108,7 @@ private:
         m_pDescriptorPool = new DescriptorPool(m_pDevice, poolSizes, maxSets); // createDescriptorPool
         createDescriptorSets();
 
-		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pSwapChain); // createGraphicsPipeline
+		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pSwapChain); // createGraphicsPipeline & createDepthPrepassPipeline
         m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pSceneManager);
         m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects

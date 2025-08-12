@@ -13,8 +13,10 @@ public:
 
 	// public member functions
 	void cleanupPipelines();
-	VkPipelineLayout getPipelineLayout() const { return m_PipelineLayout; }
 	VkPipeline getGraphicsPipeline() const { return m_GraphicsPipeline; }
+	VkPipelineLayout getPipelineLayout() const { return m_PipelineLayout; }
+	VkPipeline getDepthPrepassPipeline() const { return m_DepthPrepassPipeline; }
+	VkPipelineLayout getDepthPrepassLayout() const { return m_DepthPrepassPipelineLayout; }
 
 private:
 	// private member variables
@@ -23,10 +25,13 @@ private:
 	DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;
 	SwapChain* m_pSwapChain = nullptr;
 
-	VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 	VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;
+	VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+	VkPipeline m_DepthPrepassPipeline = VK_NULL_HANDLE;
+	VkPipelineLayout m_DepthPrepassPipelineLayout = VK_NULL_HANDLE;
 
 	// private member functions
 	void createGraphicsPipeline();
+	void createDepthPrepassPipeline();
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 };

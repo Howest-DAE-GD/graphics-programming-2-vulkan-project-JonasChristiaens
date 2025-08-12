@@ -18,5 +18,6 @@ set SCRIPT_DIR=%~dp0
 :: Compile shaders
 %GLSLC% "%SCRIPT_DIR%shader.vert" -o "%SCRIPT_DIR%vert.spv"
 %GLSLC% "%SCRIPT_DIR%shader.frag" -o "%SCRIPT_DIR%frag.spv"
+%GLSLC% "%SCRIPT_DIR%depthShader.frag" -o "%SCRIPT_DIR%depth_frag.spv"
 
 pause
