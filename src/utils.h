@@ -69,17 +69,53 @@ struct Mesh {
 	std::vector<uint32_t> getIndices() const { return indices; }
 };
 
-namespace std {
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const;
-    };
-}
-
 struct UniformBufferObject {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
+
+struct GBuffer {
+    VkImage position;
+    VkDeviceMemory positionMemory;
+    VkImage normal;
+    VkDeviceMemory normalMemory;
+    VkImage albedo;
+    VkDeviceMemory albedoMemory;
+    VkImage material;
+    VkDeviceMemory materialMemory;
+    VkImageView views[4];
+    VkFramebuffer framebuffer;
+    VkRenderPass renderPass;
+
+    void cleanup(VkDevice device) {
+        // Destroy all resources
+        for (int i = 0; i < 4; i++) {
+            if (views[i] != VK_NULL_HANDLE) {
+                vkDestroyImageView(device, views[i], nullptr);
+            }
+        }
+
+        if (position != VK_NULL_HANDLE) vkDestroyImage(device, position, nullptr);
+        if (normal != VK_NULL_HANDLE) vkDestroyImage(device, normal, nullptr);
+        if (albedo != VK_NULL_HANDLE) vkDestroyImage(device, albedo, nullptr);
+        if (material != VK_NULL_HANDLE) vkDestroyImage(device, material, nullptr);
+
+        if (positionMemory != VK_NULL_HANDLE) vkFreeMemory(device, positionMemory, nullptr);
+        if (normalMemory != VK_NULL_HANDLE) vkFreeMemory(device, normalMemory, nullptr);
+        if (albedoMemory != VK_NULL_HANDLE) vkFreeMemory(device, albedoMemory, nullptr);
+        if (materialMemory != VK_NULL_HANDLE) vkFreeMemory(device, materialMemory, nullptr);
+
+        if (framebuffer != VK_NULL_HANDLE) vkDestroyFramebuffer(device, framebuffer, nullptr);
+        if (renderPass != VK_NULL_HANDLE) vkDestroyRenderPass(device, renderPass, nullptr);
+    }
+};
+
+namespace std {
+    template<> struct hash<Vertex> {
+        size_t operator()(Vertex const& vertex) const;
+    };
+}
 
 // functions
 SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);

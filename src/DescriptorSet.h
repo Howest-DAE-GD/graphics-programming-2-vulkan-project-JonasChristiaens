@@ -13,9 +13,11 @@ public:
 
 	const VkDescriptorSet& getDescriptorSets() const { return m_DescriptorSet; }
 	void createDescriptorSets();
+	void cleanupDescriptorSet();
 
 	void updateGlobalDescriptorSets(uint32_t textureCount);
 	void updateUboDescriptorSets(std::vector<Buffer*>& uniformBuffers);
+	void updateGBufferDescriptorSets(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView);
 
 private:
 	Device* m_pDevice;
@@ -23,5 +25,5 @@ private:
 	DescriptorSetLayout* m_pDescriptorSetLayout;
 	DescriptorPool* m_pDescriptorPool;
 
-	VkDescriptorSet m_DescriptorSet;
+	VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
 };

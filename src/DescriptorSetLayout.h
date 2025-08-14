@@ -12,7 +12,7 @@ public:
 	const VkDescriptorSetLayout& getDescriptorSetLayout() const { return m_DescriptorSetLayout; }
 	void cleanupDescriptorSetLayout();
 
-	void createGlobalDescriptorSetLayout(uint32_t textureCount);
+	void createGlobalDescriptorSetLayout(uint32_t textureCount, bool includeGBuffers = true);
 	void createUboDescriptorSetLayout();
 
 private:

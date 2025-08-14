@@ -19,5 +19,9 @@ set SCRIPT_DIR=%~dp0
 %GLSLC% "%SCRIPT_DIR%shader.vert" -o "%SCRIPT_DIR%vert.spv"
 %GLSLC% "%SCRIPT_DIR%shader.frag" -o "%SCRIPT_DIR%frag.spv"
 %GLSLC% "%SCRIPT_DIR%depthShader.frag" -o "%SCRIPT_DIR%depth_frag.spv"
+%GLSLC% "%SCRIPT_DIR%geometry.vert" -o "%SCRIPT_DIR%geometry_vert.spv"
+%GLSLC% "%SCRIPT_DIR%geometry.frag" -o "%SCRIPT_DIR%geometry_frag.spv"
+%GLSLC% "%SCRIPT_DIR%lighting.frag" -o "%SCRIPT_DIR%lighting_frag.spv"
+%GLSLC% "%SCRIPT_DIR%fullscreen.vert" -o "%SCRIPT_DIR%fullscreen_vert.spv"
 
 pause

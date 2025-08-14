@@ -6,6 +6,10 @@
 #include "SwapChain.h"
 #include "Window.h"
 #include "CommandBuffer.h"
+#include "DescriptorSet.h"
+#include "DescriptorSetLayout.h"
+#include "Buffer.h"
+#include "Pipeline.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -93,7 +97,9 @@ void SceneManager::loadModel()
 	std::cout << "sus" << std::endl;
 }
 
-void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets)
+void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped,
+    CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets,
+    DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline)
 {
     VkCommandBuffer rawCommandBuffer{ commandBuffers->getCommandBuffers()[m_CurrentFrame] };
     vkWaitForFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
@@ -113,7 +119,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     vkResetFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
 
     vkResetCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], 0);
-    commandBuffers->recordCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, m_Meshes, globalDescriptorSet, uboDescriptorSets);
+    commandBuffers->recordDeferredCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, m_Meshes, globalDescriptorSet, uboDescriptorSets);
 
     VkCommandBufferSubmitInfo commandBufferSubmitInfo{};
     commandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -157,12 +163,66 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window->wasWindowResized()) {
         window->resetWindowResizedFlag();
         m_pSwapChain->recreateSwapChain();
+        recreateDependentResources(globalDescriptorSetLayout, uboDescriptorSetLayout, globalDescriptorSet, uboDescriptorSets, uniformBuffers, pipeline);
     }
     else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");
     }
 
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout,
+    DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline)
+{
+    vkDeviceWaitIdle(m_pDevice->getDevice());
+
+    // 1. Destroy old resources
+    // Descriptor sets/layouts
+    if (globalDescriptorSetLayout) {
+        globalDescriptorSetLayout->cleanupDescriptorSetLayout();
+    }
+    if (globalDescriptorSet) {
+        globalDescriptorSet->cleanupDescriptorSet();
+    }
+
+    // UBO descriptor sets/layouts
+    if (uboDescriptorSetLayout) {
+        uboDescriptorSetLayout->cleanupDescriptorSetLayout();
+    }
+    for (auto* uboSet : uboDescriptorSets) {
+        if (uboSet) uboSet->cleanupDescriptorSet();
+    }
+
+    pipeline->cleanupPipelines();
+
+    // 2. Recreate descriptor set layouts
+    globalDescriptorSetLayout->createGlobalDescriptorSetLayout(static_cast<uint32_t>(m_texturePaths.size()), true);
+    uboDescriptorSetLayout->createUboDescriptorSetLayout();
+
+    // 3. Recreate descriptor sets
+    globalDescriptorSet->createDescriptorSets();
+    globalDescriptorSet->updateGlobalDescriptorSets(static_cast<uint32_t>(m_texturePaths.size()));
+
+    // 4. Update G-buffer descriptors with new image views
+    const GBuffer& gBuffer = m_pSwapChain->getGBuffer();
+    globalDescriptorSet->updateGBufferDescriptorSets(
+        gBuffer.views[0], // Position
+        gBuffer.views[1], // Normal
+        gBuffer.views[2], // Albedo
+        gBuffer.views[3]  // Material
+    );
+
+    // 5. Recreate UBO descriptor sets
+    for (size_t idx = 0; idx < uboDescriptorSets.size(); ++idx) {
+        uboDescriptorSets[idx]->createDescriptorSets();
+        uboDescriptorSets[idx]->updateUboDescriptorSets(uniformBuffers);
+    }
+
+    // 6. Recreate pipelines
+    pipeline->createGraphicsPipeline();
+    pipeline->createGeometryPipeline();
+    pipeline->createLightingPipeline();
 }
 
 void SceneManager::createSyncObjects()

@@ -74,9 +74,11 @@ private:
         m_pInstance = new Instance(); // createInstance & setupDebugMessenger
 		m_pSurface = new Surface(m_pInstance, m_pWindow->getGLFWwindow()); // createSurface
 		m_pDevice = new Device(m_pSurface, m_pInstance); // pickPhysicalDevice & createLogicalDevice
-		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface); // createSwapChain & createImageViews
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
+		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface, m_pCommandPool); // createSwapChain & createImageViews
+
         m_pSwapChain->createResources(); // createColorResources, createDepthResources,createFramebuffers
+
         m_pSceneManager = new SceneManager(m_pDevice, m_pSwapChain);
         m_pSceneManager->loadModel(); // loadModel
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool, m_pSceneManager); // createTextureImage, createTextureImageView, createTextureSampler
@@ -100,15 +102,22 @@ private:
         const uint32_t maxFramesInFlight = MAX_FRAMES_IN_FLIGHT;
 
         std::vector<VkDescriptorPoolSize> poolSizes = {
+            // Uniform buffers (for UBO sets)
             { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxFramesInFlight },
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(numTextures) }
+
+            // Global set requirements:
+            // 1 shared sampler (binding 0)
+            { VK_DESCRIPTOR_TYPE_SAMPLER, 1 },
+
+            // Texture array (binding 1) + G-buffer textures (bindings 2-5)
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, static_cast<uint32_t>(numTextures + 4) }
         };
         uint32_t maxSets = 1 + maxFramesInFlight;
 
         m_pDescriptorPool = new DescriptorPool(m_pDevice, poolSizes, maxSets); // createDescriptorPool
         createDescriptorSets();
 
-		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pSwapChain); // createGraphicsPipeline & createDepthPrepassPipeline
+		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pSwapChain); // createGraphicsPipeline, createDepthPrepassPipeline, createGeometryPipeline & createLightingPipeline
         m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pSceneManager);
         m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects
@@ -120,7 +129,7 @@ private:
        while (!m_pWindow->shouldClose()) {
            m_pWindow->pollEvents();
            //m_Camera->Update(m_pTimer);
-           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSets);
+           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSets, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pUniformBuffers, m_pPipeline);
        }
 
        vkDeviceWaitIdle(m_pDevice->getDevice());
@@ -191,13 +200,22 @@ private:
 
     void createDescriptorSets()
     {
-        // Create Global Descriptor Set
+        // Create Global Descriptor Set (with G-buffer bindings)
         m_pGlobalDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
-		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getTexturePaths().size());
+		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getTexturePaths().size(), true);
 
 		m_pGlobalDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pGlobalDescriptorSetLayout, m_pDescriptorPool); 
         m_pGlobalDescriptorSet->createDescriptorSets();
 		m_pGlobalDescriptorSet->updateGlobalDescriptorSets(m_pSceneManager->getTexturePaths().size()); 
+
+        // Update with G-buffer textures after they're created
+        const GBuffer& gBuffer = m_pSwapChain->getGBuffer();
+        m_pGlobalDescriptorSet->updateGBufferDescriptorSets(
+            gBuffer.views[0], // Position
+            gBuffer.views[1], // Normal
+            gBuffer.views[2], // Albedo
+            gBuffer.views[3]  // Material
+        );
 
         // Create Ubo Descriptor Set
         m_pUboDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);

@@ -18,25 +18,68 @@ void DescriptorSetLayout::cleanupDescriptorSetLayout()
 }
 
 // Provide details about every descriptor binding used in shaders for pipeline creation
-void DescriptorSetLayout::createGlobalDescriptorSetLayout(uint32_t textureCount)
+void DescriptorSetLayout::createGlobalDescriptorSetLayout(uint32_t textureCount, bool includeGBuffers)
 {
-    VkDescriptorSetLayoutBinding sampleLayoutBinding{};
-    sampleLayoutBinding.binding = 0; // binding used in shader
-    sampleLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER; // type of of descriptor
-    sampleLayoutBinding.descriptorCount = 1; // nr of values in array
-    sampleLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; // specify in which shader stage descriptor will be referenced
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-    // combined image sampler descriptor
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = textureCount;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    // Binding 0: Sampler (shared sampler for all textures)
+    bindings.push_back({
+        0, // binding
+        VK_DESCRIPTOR_TYPE_SAMPLER,
+        1, // descriptorCount
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        nullptr // pImmutableSamplers
+        });
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { sampleLayoutBinding, samplerLayoutBinding };
+    // Binding 1: Texture array (sampled images)
+    bindings.push_back({
+        1, // binding
+        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        textureCount,
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        nullptr
+        });
 
-    // descriptor set layout has to be specified during pipeline creation to set which descriptors the shaders will be using
+    // Add G-buffer bindings if needed
+    if (includeGBuffers)
+    {
+        // Binding 2: G-Buffer Position (RGBA16F)
+        bindings.push_back({
+            2,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            1,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            nullptr
+            });
+
+        // Binding 3: G-Buffer Normal (RG16_SNORM)
+        bindings.push_back({
+            3,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            1,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            nullptr
+            });
+
+        // Binding 4: G-Buffer Albedo (RGBA8_UNORM)
+        bindings.push_back({
+            4,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            1,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            nullptr
+            });
+
+        // Binding 5: G-Buffer Material (RG8_UNORM)
+        bindings.push_back({
+            5,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            1,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            nullptr
+            });
+    }
+
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -49,14 +92,13 @@ void DescriptorSetLayout::createGlobalDescriptorSetLayout(uint32_t textureCount)
 void DescriptorSetLayout::createUboDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0; // binding used in shader
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; // type of of descriptor
-    uboLayoutBinding.descriptorCount = 1; // nr of values in array
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // specify in which shader stage descriptor will be referenced
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     std::array<VkDescriptorSetLayoutBinding, 1> bindings = { uboLayoutBinding };
 
-    // descriptor set layout has to be specified during pipeline creation to set which descriptors the shaders will be using
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());

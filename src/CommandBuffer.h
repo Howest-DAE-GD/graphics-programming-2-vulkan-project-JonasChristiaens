@@ -21,7 +21,7 @@ public:
 	std::vector<VkCommandBuffer> getCommandBuffers() const { return m_CommandBuffers; }
 
 	void createCommandBuffers();
-	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets);
+	void recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets);
 	
 private:
 	// private member variables
@@ -34,4 +34,7 @@ private:
 	SceneManager* m_pSceneManager{};
 
 	std::vector<VkCommandBuffer> m_CommandBuffers{};
+
+	void recordGeometryPass(VkCommandBuffer commandBuffer, const std::vector<Mesh>& Meshes, DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet);
+	void recordLightingPass(VkCommandBuffer commandBuffer, uint32_t imageIndex, DescriptorSet* globalDescriptorSet);
 };

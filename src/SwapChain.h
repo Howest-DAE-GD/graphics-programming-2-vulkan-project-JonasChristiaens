@@ -1,15 +1,17 @@
 #pragma once
 
+#include "utils.h"
 #include "Image.h"
 
 class Device;
 class Window;
 class Surface;
+class CommandPool;
 class SwapChain
 {
 public:
 	// constructor & destructor
-	SwapChain(Device* device, Window* window, Surface* surface);
+	SwapChain(Device* device, Window* window, Surface* surface, CommandPool* commandPool);
 	~SwapChain();
 
 	// public member functions
@@ -19,12 +21,14 @@ public:
 
 	void createImageViews();
 	void createResources();
+	void createGBufferResources(CommandPool* commandPool, Device* device);
 	
 	VkSwapchainKHR getSwapChain() const { return m_SwapChain; }
 	VkFormat getImageFormat() const { return m_SwapChainImageFormat; }
 	VkExtent2D getExtent() const { return m_SwapChainExtent; }
 	const std::vector<VkImageView>& getImageViews() const { return m_SwapChainImageViews; }
 	const std::vector<VkImage>& getSwapChainImages() const { return m_SwapChainImages; }
+	const GBuffer& getGBuffer() const { return m_GBuffer; }
 
 	// public member variables
 	Image* m_pImage;
@@ -34,6 +38,8 @@ private:
 	Device* m_pDevice;
 	Window* m_pWindow;
 	Surface* m_pSurface;
+	CommandPool* m_pCommandPool;
+	GBuffer m_GBuffer;
 
 	VkSwapchainKHR m_SwapChain{};
 	std::vector<VkImage> m_SwapChainImages{};

@@ -8,6 +8,10 @@ class SwapChain;
 class Window;
 class CommandBuffer;
 class DescriptorSet;
+class DescriptorSetLayout;
+class Buffer;
+class Pipeline;
+
 class SceneManager
 {
 public:
@@ -19,7 +23,11 @@ public:
 	uint32_t getCurrentFrame() const { return m_CurrentFrame; }
 
 	void loadModel();
-	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets);
+	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, 
+		CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets, 
+		DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline);
+	void recreateDependentResources(DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, 
+		DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline);
 	void createSyncObjects();
 
 	void cleanupScene();
