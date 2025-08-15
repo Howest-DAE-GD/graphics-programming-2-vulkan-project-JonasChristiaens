@@ -177,34 +177,10 @@ void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescrip
 {
     vkDeviceWaitIdle(m_pDevice->getDevice());
 
-    // 1. Destroy old resources
-    // Descriptor sets/layouts
-    if (globalDescriptorSetLayout) {
-        globalDescriptorSetLayout->cleanupDescriptorSetLayout();
-    }
-    if (globalDescriptorSet) {
-        globalDescriptorSet->cleanupDescriptorSet();
-    }
-
-    // UBO descriptor sets/layouts
-    if (uboDescriptorSetLayout) {
-        uboDescriptorSetLayout->cleanupDescriptorSetLayout();
-    }
-    for (auto* uboSet : uboDescriptorSets) {
-        if (uboSet) uboSet->cleanupDescriptorSet();
-    }
-
-    pipeline->cleanupPipelines();
-
-    // 2. Recreate descriptor set layouts
-    globalDescriptorSetLayout->createGlobalDescriptorSetLayout(static_cast<uint32_t>(m_texturePaths.size()), true);
-    uboDescriptorSetLayout->createUboDescriptorSetLayout();
-
-    // 3. Recreate descriptor sets
-    globalDescriptorSet->createDescriptorSets();
+    // 1. Update Global descriptor sets
     globalDescriptorSet->updateGlobalDescriptorSets(static_cast<uint32_t>(m_texturePaths.size()));
 
-    // 4. Update G-buffer descriptors with new image views
+    // 2. Update G-buffer descriptors with new image views
     const GBuffer& gBuffer = m_pSwapChain->getGBuffer();
     globalDescriptorSet->updateGBufferDescriptorSets(
         gBuffer.views[0], // Position
@@ -213,16 +189,10 @@ void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescrip
         gBuffer.views[3]  // Material
     );
 
-    // 5. Recreate UBO descriptor sets
+    // 3. Update UBO descriptor sets
     for (size_t idx = 0; idx < uboDescriptorSets.size(); ++idx) {
-        uboDescriptorSets[idx]->createDescriptorSets();
         uboDescriptorSets[idx]->updateUboDescriptorSets(uniformBuffers);
     }
-
-    // 6. Recreate pipelines
-    pipeline->createGraphicsPipeline();
-    pipeline->createGeometryPipeline();
-    pipeline->createLightingPipeline();
 }
 
 void SceneManager::createSyncObjects()
