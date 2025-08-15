@@ -16,8 +16,7 @@ set GLSLC="%VULKAN_SDK%\Bin\glslc.exe"
 set SCRIPT_DIR=%~dp0
 
 :: Compile shaders
-%GLSLC% "%SCRIPT_DIR%shader.vert" -o "%SCRIPT_DIR%vert.spv"
-%GLSLC% "%SCRIPT_DIR%shader.frag" -o "%SCRIPT_DIR%frag.spv"
+%GLSLC% "%SCRIPT_DIR%depthShader.vert" -o "%SCRIPT_DIR%depth_vert.spv"
 %GLSLC% "%SCRIPT_DIR%depthShader.frag" -o "%SCRIPT_DIR%depth_frag.spv"
 %GLSLC% "%SCRIPT_DIR%geometry.vert" -o "%SCRIPT_DIR%geometry_vert.spv"
 %GLSLC% "%SCRIPT_DIR%geometry.frag" -o "%SCRIPT_DIR%geometry_frag.spv"

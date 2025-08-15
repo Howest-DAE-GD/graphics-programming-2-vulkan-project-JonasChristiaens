@@ -23,7 +23,6 @@ public:
 	VkPipeline getLightingPipeline() const { return m_LightingPipeline; }
 	VkPipelineLayout getLightingPipelineLayout() const { return m_LightingPipelineLayout; }
 
-    void createGraphicsPipeline();
     void createDepthPrepassPipeline();
     void createGeometryPipeline();
     void createLightingPipeline();
