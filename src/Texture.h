@@ -33,10 +33,13 @@ private:
 	std::vector<VkDeviceMemory> m_TextureImageMemories;
 	std::vector<VkImageView> m_TextureImageViews;
 	std::vector<uint32_t> m_MipLevels;
+	std::vector<VkFormat> m_TextureFormats;
 
 	VkSampler m_TextureSampler = VK_NULL_HANDLE;
 
 	// private member functions
+	void create1x1Fallback(unsigned char* pixel, VkFormat format, Device* device, SwapChain* swapchain, CommandPool* commandPool,
+		VkImage& image, VkDeviceMemory& memory, VkImageView& imageView, uint32_t& mipLevels);
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
 	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);

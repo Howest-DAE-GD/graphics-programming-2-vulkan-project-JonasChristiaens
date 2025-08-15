@@ -32,8 +32,12 @@ public:
 
 	void cleanupScene();
 	std::vector<Mesh>& getMeshes() { return m_Meshes; }
-	std::vector<std::string>& getTexturePaths() { return m_texturePaths; }
+	//std::vector<std::string>& getTexturePaths() { return m_texturePaths; }
 
+	// Accessors for PBR texture paths
+	const std::vector<std::string>& getAlbedoPaths() const { return m_albedoPaths; }
+	const std::vector<std::string>& getNormalPaths() const { return m_normalPaths; }
+	const std::vector<std::string>& getMetallicRoughnessPaths() const { return m_metallicRoughnessPaths; }
 private:
 	// private member variables
 	Device* m_pDevice{};
@@ -44,10 +48,14 @@ private:
 	std::vector<VkFence> m_InFlightFences{};
 	uint32_t m_CurrentFrame{};
 
-	std::vector<std::string> m_texturePaths{};
-	std::vector<std::string> m_normalPaths{};
+	/*std::vector<std::string> m_texturePaths{};
+	std::vector<std::string> m_normalPaths{};*/
 
 	std::vector<Mesh> m_Meshes{};
+
+	std::vector<std::string> m_albedoPaths;
+    std::vector<std::string> m_normalPaths;
+    std::vector<std::string> m_metallicRoughnessPaths;
 
 	// private member functions
 	void updateUniformBuffer(uint32_t currentImage, std::vector<void*> uniformBuffersMapped);

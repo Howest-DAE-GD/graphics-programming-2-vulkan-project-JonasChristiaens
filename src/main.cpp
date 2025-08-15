@@ -98,7 +98,7 @@ private:
         createUniformBuffers();
         
         // Calculate descriptor pool requirements
-        size_t numTextures = m_pSceneManager->getTexturePaths().size();
+        size_t numTextures = m_pSceneManager->getAlbedoPaths().size();
         const uint32_t maxFramesInFlight = MAX_FRAMES_IN_FLIGHT;
 
         std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -202,11 +202,11 @@ private:
     {
         // Create Global Descriptor Set (with G-buffer bindings)
         m_pGlobalDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
-		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getTexturePaths().size(), true);
+		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getAlbedoPaths().size(), true);
 
 		m_pGlobalDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pGlobalDescriptorSetLayout, m_pDescriptorPool); 
         m_pGlobalDescriptorSet->createDescriptorSets();
-		m_pGlobalDescriptorSet->updateGlobalDescriptorSets(m_pSceneManager->getTexturePaths().size()); 
+		m_pGlobalDescriptorSet->updateGlobalDescriptorSets(m_pSceneManager->getAlbedoPaths().size()); 
 
         // Update with G-buffer textures after they're created
         const GBuffer& gBuffer = m_pSwapChain->getGBuffer();

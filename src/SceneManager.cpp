@@ -18,6 +18,7 @@
 #include <vector>
 #include <chrono>
 #include <iostream>
+#include <filesystem>
 
 SceneManager::SceneManager(Device* device, SwapChain* spawChain)
     : m_pDevice(device)
@@ -29,72 +30,103 @@ void SceneManager::loadModel()
 {
     Assimp::Importer importer;
 
-	const aiScene* scene = importer.ReadFile(MODEL_PATH, 
+	const aiScene* scene = importer.ReadFile(
+        MODEL_PATH, 
         aiProcess_Triangulate | 
 		aiProcess_CalcTangentSpace |
 		aiProcess_JoinIdenticalVertices |
-        aiProcess_FlipUVs
+        aiProcess_FlipUVs |
+        aiProcess_GenSmoothNormals
     );
 
     // check for failure
-    if (!scene)
+    if (!scene || !scene->HasMeshes())
     {
 		std::cout << "Error loading model: " << importer.GetErrorString() << std::endl;
         return;
     }
 
-    // 26 textures in the m_texturePaths vector, but when debugging index 0 and 13 are empty (?)
-	m_texturePaths.resize(scene->mNumMaterials - 1); 
-	m_normalPaths.resize(scene->mNumMaterials - 1);
-    
-    const aiMatrix4x4 root = scene->mRootNode->mTransformation;
-    for (unsigned int m = 0; m < scene->mNumMeshes; m++)
-    {
-        aiMesh* mesh = scene->mMeshes[m];
-		Mesh newMesh;
+    // Prepare per-material texture path vectors
+    size_t numMaterials = scene->mNumMaterials;
+    m_albedoPaths.assign(numMaterials, "");
+    m_normalPaths.assign(numMaterials, "");
+    m_metallicRoughnessPaths.assign(numMaterials, "");
 
-		// Process vertices
+    std::filesystem::path basePath = std::filesystem::path(MODEL_PATH).parent_path();
+
+    m_Meshes.clear();
+
+    for (unsigned int m = 0; m < scene->mNumMeshes; m++) {
+        aiMesh* mesh = scene->mMeshes[m];
+        Mesh newMesh;
+        newMesh.materialIndex = mesh->mMaterialIndex;
+
+        // Vertices
         newMesh.vertices.reserve(mesh->mNumVertices);
-        for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+        for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
             Vertex v;
-            aiVector3D scaleVertices = root * mesh->mVertices[i];
-            v.pos = glm::vec3(scaleVertices.x, scaleVertices.y, scaleVertices.z);
-            v.texCoord = mesh->HasTextureCoords(0) ? glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y) : glm::vec2(0.0f);
-            v.color = { 1.f, 1.f, 1.f };
-            v.normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-            v.tangent = glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z);
-            v.biTangent = glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z);
+            v.pos = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+            v.color = glm::vec3(1.0f);
+            v.texCoord = mesh->HasTextureCoords(0)
+                ? glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y)
+                : glm::vec2(0.0f);
+            v.normal = mesh->HasNormals()
+                ? glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z)
+                : glm::vec3(0.0f);
+            v.tangent = mesh->HasTangentsAndBitangents()
+                ? glm::vec3(mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z)
+                : glm::vec3(0.0f);
+            v.biTangent = mesh->HasTangentsAndBitangents()
+                ? glm::vec3(mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z)
+                : glm::vec3(0.0f);
             newMesh.vertices.push_back(v);
         }
 
-        // Process indices
-		newMesh.indices.reserve(mesh->mNumFaces * 3);
-        for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+        // Indices
+        newMesh.indices.reserve(mesh->mNumFaces * 3);
+        for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
             aiFace face = mesh->mFaces[i];
-            for (unsigned int j = 0; j < face.mNumIndices; j++) {
+            for (unsigned int j = 0; j < face.mNumIndices; ++j) {
                 newMesh.indices.push_back(face.mIndices[j]);
             }
         }
 
-        // Store material index
-        newMesh.materialIndex = mesh->mMaterialIndex;
-
-        // load material textures
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-        --newMesh.materialIndex;
         aiString texPath;
 
-        if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
-            m_texturePaths[newMesh.materialIndex] = "models\\" + std::string(texPath.C_Str());
+        // Albedo/BaseColor
+        if (material->GetTexture(aiTextureType_BASE_COLOR, 0, &texPath) == AI_SUCCESS) {
+            m_albedoPaths[newMesh.materialIndex] = (basePath / texPath.C_Str()).string();
+        }
+        else if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
+            m_albedoPaths[newMesh.materialIndex] = (basePath / texPath.C_Str()).string();
         }
 
+        // Normal Map
         if (material->GetTexture(aiTextureType_NORMALS, 0, &texPath) == AI_SUCCESS) {
-            m_normalPaths[newMesh.materialIndex] = "models\\" + std::string(texPath.C_Str());
+            m_normalPaths[newMesh.materialIndex] = (basePath / texPath.C_Str()).string();
         }
-		
+        else if (material->GetTexture(aiTextureType_HEIGHT, 0, &texPath) == AI_SUCCESS) {
+            m_normalPaths[newMesh.materialIndex] = (basePath / texPath.C_Str()).string();
+        }
+
+        // Metallic-Roughness Map (glTF standard: aiTextureType_UNKNOWN)
+        if (material->GetTexture(aiTextureType_UNKNOWN, 0, &texPath) == AI_SUCCESS) {
+            m_metallicRoughnessPaths[newMesh.materialIndex] = (basePath / texPath.C_Str()).string();
+        }
+
         m_Meshes.push_back(newMesh);
     }
-	std::cout << "sus" << std::endl;
+
+    std::cout << "Loaded " << m_Meshes.size() << " meshes from " << MODEL_PATH << std::endl;
+
+    // Debug: print found texture paths per material
+    for (size_t i = 0; i < numMaterials; ++i) {
+        std::cout << "Material " << i << ":\n";
+        std::cout << "  Albedo: " << m_albedoPaths[i] << "\n";
+        std::cout << "  Normal: " << m_normalPaths[i] << "\n";
+        std::cout << "  MetallicRoughness: " << m_metallicRoughnessPaths[i] << "\n";
+    }
 }
 
 void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped,
@@ -178,7 +210,7 @@ void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescrip
     vkDeviceWaitIdle(m_pDevice->getDevice());
 
     // 1. Update Global descriptor sets
-    globalDescriptorSet->updateGlobalDescriptorSets(static_cast<uint32_t>(m_texturePaths.size()));
+    globalDescriptorSet->updateGlobalDescriptorSets(static_cast<uint32_t>(m_albedoPaths.size()));
 
     // 2. Update G-buffer descriptors with new image views
     const GBuffer& gBuffer = m_pSwapChain->getGBuffer();

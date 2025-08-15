@@ -63,8 +63,14 @@ void Buffer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
 
 void Buffer::cleanupBuffer()
 {
-    vkDestroyBuffer(m_pDevice->getDevice(), m_Buffer, nullptr);
-    vkFreeMemory(m_pDevice->getDevice(), m_BufferMemory, nullptr);
+    if (m_Buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(m_pDevice->getDevice(), m_Buffer, nullptr);
+        m_Buffer = VK_NULL_HANDLE;
+    }
+    if (m_BufferMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_pDevice->getDevice(), m_BufferMemory, nullptr);
+        m_BufferMemory = VK_NULL_HANDLE;
+    }
 }
 
 void Buffer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
