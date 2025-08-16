@@ -79,8 +79,6 @@ FetchContent_MakeAvailable(glfw glm stb tob sdl2 vma assimp)
 set(${PROJECT_NAME}_SOURCES
     "src/main.cpp"
     "src/utils.cpp"
-    "src/Camera.cpp"
-    "src/HelperClasses/Timer.cpp"
     "src/Window.cpp"
     "src/Instance.cpp"
     "src/Surface.cpp"

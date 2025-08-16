@@ -16,7 +16,3 @@
 #include <glm/vec4.hpp>
 
 #undef max
-
-// Framework Headers
-#include "HelperClasses/Timer.h"
-#include "HelperClasses/MathHelpers.h"

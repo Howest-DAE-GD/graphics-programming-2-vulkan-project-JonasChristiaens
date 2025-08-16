@@ -4,7 +4,6 @@
 
 // class including
 #include "Window.h"
-#include "Camera.h"
 #include "Instance.h"
 #include "Surface.h"
 #include "Device.h"
@@ -28,9 +27,7 @@ class HelloTriangleApplication {
 public:
     void run() 
     {
-       m_pTimer = new Timer();
        m_pWindow = new Window("Vulkan");
-       //m_Camera = std::make_unique<Camera>(glm::vec3{ 0.0f, 0.0f, 0.0f }, 45.0f, aspectRatio, 0.1f, 100.0f);
        initVulkan();
        mainLoop();
        cleanup();
@@ -40,12 +37,12 @@ private:
     // Private class variables
     Window* m_pWindow = nullptr;
 
-    Timer* m_pTimer = nullptr;
-    //std::unique_ptr<Camera> m_Camera;
-
     Instance* m_pInstance = nullptr;
+
 	Surface* m_pSurface = nullptr;
+
 	Device* m_pDevice = nullptr;
+
     SwapChain* m_pSwapChain = nullptr;
 
     DescriptorSet* m_pGlobalDescriptorSet = nullptr;
@@ -55,7 +52,9 @@ private:
 	DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;
 
 	Pipeline* m_pPipeline = nullptr;
+
 	CommandPool* m_pCommandPool = nullptr;
+
 	Texture* m_pTexture = nullptr;
 
 	std::vector<Buffer*> m_pVertexBuffers{};
@@ -65,7 +64,9 @@ private:
     std::vector<void*> m_UniformBuffersMapped{};
 
     DescriptorPool* m_pDescriptorPool = nullptr;
+
     CommandBuffer* m_pCommandBuffer = nullptr;
+
     SceneManager* m_pSceneManager = nullptr;
 
     // Private class Functions
@@ -110,7 +111,7 @@ private:
             { VK_DESCRIPTOR_TYPE_SAMPLER, 1 },
 
             // Texture array (binding 1) + G-buffer textures (bindings 2-5)
-            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, static_cast<uint32_t>(numTextures + 4) }
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, static_cast<uint32_t>(numTextures * 2 + 4) }
         };
         uint32_t maxSets = 1 + maxFramesInFlight;
 
@@ -128,7 +129,6 @@ private:
        // Loop until the user closes the window
        while (!m_pWindow->shouldClose()) {
            m_pWindow->pollEvents();
-           //m_Camera->Update(m_pTimer);
            m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSets, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pUniformBuffers, m_pPipeline);
        }
 
