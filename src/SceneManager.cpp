@@ -47,7 +47,7 @@ void SceneManager::loadModel()
     }
 
     // Prepare per-material texture path vectors
-    size_t numMaterials = scene->mNumMaterials;
+    size_t numMaterials = scene->mNumMaterials -1;
     m_albedoPaths.assign(numMaterials, "");
     m_normalPaths.assign(numMaterials, "");
     m_metallicRoughnessPaths.assign(numMaterials, "");
@@ -257,6 +257,10 @@ void SceneManager::cleanupScene()
         vkDestroySemaphore(m_pDevice->getDevice(), m_ImageAvailableSemaphores[i], nullptr);
         vkDestroyFence(m_pDevice->getDevice(), m_InFlightFences[i], nullptr);
     }
+
+    m_RenderFinishedSemaphores.clear();
+    m_ImageAvailableSemaphores.clear();
+    m_InFlightFences.clear();
 }
 
 // Generate a new transformation every frame to make geometry spin around

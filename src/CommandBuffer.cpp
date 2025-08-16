@@ -24,6 +24,15 @@ CommandBuffer::CommandBuffer(Device* device, CommandPool* commandPool, SwapChain
 {
 }
 
+CommandBuffer::~CommandBuffer()
+{
+    if (!m_CommandBuffers.empty()) {
+        vkFreeCommandBuffers(m_pDevice->getDevice(), m_pCommandPool->getCommandPool(),
+            static_cast<uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
+        m_CommandBuffers.clear();
+    }
+}
+
 void CommandBuffer::createCommandBuffers()
 {
 	m_CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);

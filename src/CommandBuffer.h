@@ -15,7 +15,7 @@ public:
 	// constructor & destructor
 	CommandBuffer(Device* device, CommandPool* commandPool, SwapChain* swapChain, Pipeline* pipeline, std::vector<Buffer*> vertexBuffer,
 		std::vector<Buffer*> indexBuffer, SceneManager* sceneManager);
-	~CommandBuffer() = default;
+	~CommandBuffer();
 
 	// public member functions
 	std::vector<VkCommandBuffer> getCommandBuffers() const { return m_CommandBuffers; }

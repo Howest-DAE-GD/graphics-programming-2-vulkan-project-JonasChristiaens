@@ -10,13 +10,31 @@ Image::Image(Device* device)
 }
 void Image::cleanup()
 {
-    vkDestroyImageView(m_pDevice->getDevice(), m_ColorImageView, nullptr);
-    vkDestroyImage(m_pDevice->getDevice(), m_ColorImage, nullptr);
-    vkFreeMemory(m_pDevice->getDevice(), m_ColorImageMemory, nullptr);
+    if (m_ColorImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_pDevice->getDevice(), m_ColorImageView, nullptr);
+        m_ColorImageView = VK_NULL_HANDLE;
+    }
+    if (m_ColorImage != VK_NULL_HANDLE) {
+        vkDestroyImage(m_pDevice->getDevice(), m_ColorImage, nullptr);
+        m_ColorImage = VK_NULL_HANDLE;
+    }
+    if (m_ColorImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_pDevice->getDevice(), m_ColorImageMemory, nullptr);
+        m_ColorImageMemory = VK_NULL_HANDLE;
+    }
 
-    vkDestroyImageView(m_pDevice->getDevice(), m_DepthImageView, nullptr);
-    vkDestroyImage(m_pDevice->getDevice(), m_DepthImage, nullptr);
-    vkFreeMemory(m_pDevice->getDevice(), m_DepthImageMemory, nullptr);
+    if (m_DepthImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_pDevice->getDevice(), m_DepthImageView, nullptr);
+        m_DepthImageView = VK_NULL_HANDLE;
+    }
+    if (m_DepthImage != VK_NULL_HANDLE) {
+        vkDestroyImage(m_pDevice->getDevice(), m_DepthImage, nullptr);
+        m_DepthImage = VK_NULL_HANDLE;
+    }
+    if (m_DepthImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_pDevice->getDevice(), m_DepthImageMemory, nullptr);
+        m_DepthImageMemory = VK_NULL_HANDLE;
+    }
 }
 
 void Image::createColorResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples, VkFormat colorFormat)
@@ -24,6 +42,7 @@ void Image::createColorResources(uint32_t width, uint32_t height, VkSampleCountF
     createImage(width, height, 1, msaaSamples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_ColorImage, m_ColorImageMemory);
     m_ColorImageView = createImageView(m_ColorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_pDevice);
 }
+
 void Image::createDepthResources(uint32_t width, uint32_t height)
 {
     VkFormat depthFormat = findDepthFormat();
@@ -90,7 +109,6 @@ VkImageMemoryBarrier Image::createImageMemoryBarrier(VkImage image, VkImageLayou
     return barrier;
 }
 
-
 VkImageView Image::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels, Device* device)
 {
     VkImageViewCreateInfo viewInfo{};
@@ -125,6 +143,7 @@ uint32_t Image::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags proper
 
     throw std::runtime_error("failed to find suitable memory type!");
 }
+
 VkFormat Image::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
     for (VkFormat format : candidates) {
@@ -139,6 +158,7 @@ VkFormat Image::findSupportedFormat(const std::vector<VkFormat>& candidates, VkI
 
     throw std::runtime_error("failed to find supported format!");
 }
+
 VkFormat Image::findDepthFormat()
 {
     return findSupportedFormat(

@@ -12,7 +12,10 @@ public:
 	const VkDescriptorSetLayout& getDescriptorSetLayout() const { return m_DescriptorSetLayout; }
 	void cleanupDescriptorSetLayout();
 
+	// Create layout for global descriptor set (sampler, albedo array, normal map array, G-buffer textures)
 	void createGlobalDescriptorSetLayout(uint32_t textureCount, bool includeGBuffers = true);
+
+	// Create layout for UBO descriptor set
 	void createUboDescriptorSetLayout();
 
 private:

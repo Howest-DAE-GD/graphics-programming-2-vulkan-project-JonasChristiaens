@@ -23,5 +23,8 @@ DescriptorPool::DescriptorPool(Device* device, const std::vector<VkDescriptorPoo
 
 void DescriptorPool::cleanupDescriptorPool()
 {
-	vkDestroyDescriptorPool(m_pDevice->getDevice(), m_DescriptorPool, nullptr);
+    if (m_DescriptorPool != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(m_pDevice->getDevice(), m_DescriptorPool, nullptr);
+        m_DescriptorPool = VK_NULL_HANDLE;
+    }
 }

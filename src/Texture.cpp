@@ -12,57 +12,57 @@
 #include <stb_image.h>
 #include <stdexcept>
 #include <iostream>
+#include <algorithm>
+#include <unordered_set>
+
+// Static fallback resources
+namespace {
+    VkImage fallbackAlbedoImage = VK_NULL_HANDLE, fallbackNormalImage = VK_NULL_HANDLE;
+    VkDeviceMemory fallbackAlbedoMemory = VK_NULL_HANDLE, fallbackNormalMemory = VK_NULL_HANDLE;
+    VkImageView fallbackAlbedoView = VK_NULL_HANDLE, fallbackNormalView = VK_NULL_HANDLE;
+    uint32_t fallbackAlbedoMip = 1, fallbackNormalMip = 1;
+}
 
 Texture::Texture(Device* device, SwapChain* swapchain, CommandPool* commandPool, SceneManager* sceneManager)
-	: m_pDevice(device)
+    : m_pDevice(device)
     , m_pSwapChain(swapchain)
     , m_pCommandPool(commandPool)
     , m_pSceneManager(sceneManager)
 {
-	createTextureImage();
+    createTextureImage();
     createTextureImageView();
     createTextureSampler();
 }
 
 void Texture::createTextureImage()
 {
-    // Track format per image
-    m_TextureFormats.clear();
+    // Fallback format for albedo and normal
+    const VkFormat albedoFormat = VK_FORMAT_R8G8B8A8_SRGB, normalFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
-    // Fallback textures for albedo, normal, metallic-roughness
-    static VkImage fallbackAlbedoImage = VK_NULL_HANDLE, fallbackNormalImage = VK_NULL_HANDLE, fallbackMRImage = VK_NULL_HANDLE;
-    static VkDeviceMemory fallbackAlbedoMemory = VK_NULL_HANDLE, fallbackNormalMemory = VK_NULL_HANDLE, fallbackMRMemory = VK_NULL_HANDLE;
-    static VkImageView fallbackAlbedoView = VK_NULL_HANDLE, fallbackNormalView = VK_NULL_HANDLE, fallbackMRView = VK_NULL_HANDLE;
-    static uint32_t fallbackAlbedoMip = 1, fallbackNormalMip = 1, fallbackMRMip = 1;
-    const VkFormat albedoFormat = VK_FORMAT_R8G8B8A8_SRGB, normalFormat = VK_FORMAT_R8G8B8A8_UNORM, mrFormat = VK_FORMAT_R8G8B8A8_SRGB;
-
+    // Create fallback 1x1 white/albedo
     if (fallbackAlbedoImage == VK_NULL_HANDLE) {
         unsigned char white[4] = { 255,255,255,255 }; // albedo fallback: white
         create1x1Fallback(white, albedoFormat, m_pDevice, m_pSwapChain, m_pCommandPool,
             fallbackAlbedoImage, fallbackAlbedoMemory, fallbackAlbedoView, fallbackAlbedoMip);
     }
+    // Create fallback 1x1 normal
     if (fallbackNormalImage == VK_NULL_HANDLE) {
         unsigned char flatNormal[4] = { 128,128,255,255 }; // normal fallback: flat Z
         create1x1Fallback(flatNormal, normalFormat, m_pDevice, m_pSwapChain, m_pCommandPool,
             fallbackNormalImage, fallbackNormalMemory, fallbackNormalView, fallbackNormalMip);
-    }
-    if (fallbackMRImage == VK_NULL_HANDLE) {
-        unsigned char roughNonMetal[4] = { 0,255,0,255 }; // metallic-roughness fallback: rough, non-metal
-        create1x1Fallback(roughNonMetal, mrFormat, m_pDevice, m_pSwapChain, m_pCommandPool,
-            fallbackMRImage, fallbackMRMemory, fallbackMRView, fallbackMRMip);
     }
 
     // Load albedo textures
     const auto& albedoPaths = m_pSceneManager->getAlbedoPaths();
     for (const auto& path : albedoPaths) {
         if (path.empty()) {
-            m_TextureImages.push_back(fallbackAlbedoImage);
-            m_TextureImageMemories.push_back(fallbackAlbedoMemory);
+            m_AlbedoImages.push_back(fallbackAlbedoImage);
+            m_AlbedoImageMemories.push_back(fallbackAlbedoMemory);
+            m_AlbedoImageViews.push_back(fallbackAlbedoView);
             m_MipLevels.push_back(fallbackAlbedoMip);
             m_TextureFormats.push_back(albedoFormat);
             continue;
         }
-
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (!pixels) throw std::runtime_error("failed to load texture image: " + path);
@@ -94,8 +94,8 @@ void Texture::createTextureImage()
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
-        m_TextureImages.push_back(textureImage);
-        m_TextureImageMemories.push_back(textureImageMemory);
+        m_AlbedoImages.push_back(textureImage);
+        m_AlbedoImageMemories.push_back(textureImageMemory);
 
         // Copy and transitions
         transitionImageLayout(textureImage, albedoFormat,
@@ -113,21 +113,17 @@ void Texture::createTextureImage()
     const auto& normalPaths = m_pSceneManager->getNormalPaths();
     for (const auto& path : normalPaths) {
         if (path.empty()) {
-            m_TextureImages.push_back(fallbackNormalImage);
-            m_TextureImageMemories.push_back(fallbackNormalMemory);
-            m_MipLevels.push_back(fallbackNormalMip);
-            m_TextureFormats.push_back(normalFormat);
+            m_NormalImages.push_back(fallbackNormalImage);
+            m_NormalImageMemories.push_back(fallbackNormalMemory);
+            m_NormalImageViews.push_back(fallbackNormalView);
             continue;
         }
-
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        if (!pixels) throw std::runtime_error("failed to load texture image: " + path);
+        if (!pixels) throw std::runtime_error("failed to load normal map image: " + path);
 
         VkDeviceSize imageSize = texWidth * texHeight * 4;
         uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-        m_MipLevels.push_back(mipLevels);
-        m_TextureFormats.push_back(normalFormat);
 
         // Create staging buffer
         VkBuffer stagingBuffer{};
@@ -151,8 +147,8 @@ void Texture::createTextureImage()
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
-        m_TextureImages.push_back(textureImage);
-        m_TextureImageMemories.push_back(textureImageMemory);
+        m_NormalImages.push_back(textureImage);
+        m_NormalImageMemories.push_back(textureImageMemory);
 
         // Copy and transitions
         transitionImageLayout(textureImage, normalFormat,
@@ -164,84 +160,38 @@ void Texture::createTextureImage()
         vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
 
         generateMipmaps(textureImage, normalFormat, texWidth, texHeight, mipLevels);
-    }
 
-    // Load MetallicRoughness textures
-    const auto& MRpaths = m_pSceneManager->getMetallicRoughnessPaths();
-    for (const auto& path : MRpaths) {
-        if (path.empty()) {
-            m_TextureImages.push_back(fallbackMRImage);
-            m_TextureImageMemories.push_back(fallbackMRMemory);
-            m_MipLevels.push_back(fallbackMRMip);
-            m_TextureFormats.push_back(mrFormat);
-            continue;
-        }
-
-        int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        if (!pixels) throw std::runtime_error("failed to load texture image: " + path);
-
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
-        uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-        m_MipLevels.push_back(mipLevels);
-        m_TextureFormats.push_back(mrFormat);
-
-        // Create staging buffer
-        VkBuffer stagingBuffer{};
-        VkDeviceMemory stagingBufferMemory{};
-        Buffer::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            stagingBuffer, stagingBufferMemory, m_pDevice);
-
-        void* data;
-        vkMapMemory(m_pDevice->getDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, pixels, static_cast<size_t>(imageSize));
-        vkUnmapMemory(m_pDevice->getDevice(), stagingBufferMemory);
-
-        stbi_image_free(pixels);
-
-        // Create image and memory
-        VkImage textureImage;
-        VkDeviceMemory textureImageMemory;
-        m_pSwapChain->m_pImage->createImage(texWidth, texHeight, mipLevels,
-            VK_SAMPLE_COUNT_1_BIT, mrFormat, VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
-
-        m_TextureImages.push_back(textureImage);
-        m_TextureImageMemories.push_back(textureImageMemory);
-
-        // Copy and transitions
-        transitionImageLayout(textureImage, mrFormat,
-            VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
-        copyBufferToImage(stagingBuffer, textureImage,
-            static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-
-        vkDestroyBuffer(m_pDevice->getDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(m_pDevice->getDevice(), stagingBufferMemory, nullptr);
-
-        generateMipmaps(textureImage, mrFormat, texWidth, texHeight, mipLevels);
+        // Create image view
+        VkImageView imageView = Image::createImageView(
+            textureImage,
+            normalFormat,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            mipLevels,
+            m_pDevice
+        );
+        m_NormalImageViews.push_back(imageView);
     }
 }
 
 void Texture::createTextureImageView()
 {
-    m_TextureImageViews.clear();
-    for (size_t i = 0; i < m_TextureImages.size(); i++) {
-        if (m_TextureImages[i] == VK_NULL_HANDLE) {
-            // Should never happen if fallback textures are used!
-            throw std::runtime_error("Texture image is VK_NULL_HANDLE, fallback was not set up correctly.");
+    // Albedo image views
+    m_AlbedoImageViews.clear();
+    for (size_t i = 0; i < m_AlbedoImages.size(); i++) {
+        if (m_AlbedoImages[i] == VK_NULL_HANDLE) {
+            throw std::runtime_error("Albedo image is VK_NULL_HANDLE, fallback not set up!");
         }
-
         VkImageView imageView = Image::createImageView(
-            m_TextureImages[i],
+            m_AlbedoImages[i],
             m_TextureFormats[i],
             VK_IMAGE_ASPECT_COLOR_BIT,
             m_MipLevels[i],
             m_pDevice
         );
-        m_TextureImageViews.push_back(imageView);
+        m_AlbedoImageViews.push_back(imageView);
     }
+
+    // Normal image views already created in createTextureImage()
 }
 
 void Texture::createTextureSampler()
@@ -273,32 +223,91 @@ void Texture::createTextureSampler()
 
 void Texture::cleanupTextures()
 {
-    // Destroy sampler
+    // 1. Destroy sampler
     if (m_TextureSampler != VK_NULL_HANDLE) {
         vkDestroySampler(m_pDevice->getDevice(), m_TextureSampler, nullptr);
         m_TextureSampler = VK_NULL_HANDLE;
     }
 
-    // Destroy all image views
-    for (auto imageView : m_TextureImageViews) {
-        if (imageView != VK_NULL_HANDLE) {
+    // 2. Track destroyed handles
+    std::unordered_set<VkImageView> destroyedViews;
+    std::unordered_set<VkImage> destroyedImages;
+    std::unordered_set<VkDeviceMemory> destroyedMemory;
+
+    // 3. Destroy albedo image views
+    for (auto imageView : m_AlbedoImageViews) {
+        if (imageView != VK_NULL_HANDLE && destroyedViews.count(imageView) == 0) {
             vkDestroyImageView(m_pDevice->getDevice(), imageView, nullptr);
+            destroyedViews.insert(imageView);
         }
     }
-    m_TextureImageViews.clear();
+    m_AlbedoImageViews.clear();
 
-    // Destroy all images and free memory
-    for (size_t i = 0; i < m_TextureImages.size(); i++) {
-        if (m_TextureImages[i] != VK_NULL_HANDLE)
-            vkDestroyImage(m_pDevice->getDevice(), m_TextureImages[i], nullptr);
-        if (m_TextureImageMemories[i] != VK_NULL_HANDLE)
-            vkFreeMemory(m_pDevice->getDevice(), m_TextureImageMemories[i], nullptr);
+    // 4. Destroy normal image views
+    for (auto imageView : m_NormalImageViews) {
+        if (imageView != VK_NULL_HANDLE && destroyedViews.count(imageView) == 0) {
+            vkDestroyImageView(m_pDevice->getDevice(), imageView, nullptr);
+            destroyedViews.insert(imageView);
+        }
     }
+    m_NormalImageViews.clear();
 
-    m_TextureImages.clear();
-    m_TextureImageMemories.clear();
+    // 5. Destroy all albedo images and free memory
+    for (size_t i = 0; i < m_AlbedoImages.size(); i++) {
+        if (m_AlbedoImages[i] != VK_NULL_HANDLE && destroyedImages.count(m_AlbedoImages[i]) == 0) {
+            vkDestroyImage(m_pDevice->getDevice(), m_AlbedoImages[i], nullptr);
+            destroyedImages.insert(m_AlbedoImages[i]);
+        }
+        if (m_AlbedoImageMemories[i] != VK_NULL_HANDLE && destroyedMemory.count(m_AlbedoImageMemories[i]) == 0) {
+            vkFreeMemory(m_pDevice->getDevice(), m_AlbedoImageMemories[i], nullptr);
+            destroyedMemory.insert(m_AlbedoImageMemories[i]);
+        }
+    }
+    m_AlbedoImages.clear();
+    m_AlbedoImageMemories.clear();
+
+    // 6. Destroy all normal images and free memory
+    for (size_t i = 0; i < m_NormalImages.size(); i++) {
+        if (m_NormalImages[i] != VK_NULL_HANDLE && destroyedImages.count(m_NormalImages[i]) == 0) {
+            vkDestroyImage(m_pDevice->getDevice(), m_NormalImages[i], nullptr);
+            destroyedImages.insert(m_NormalImages[i]);
+        }
+        if (m_NormalImageMemories[i] != VK_NULL_HANDLE && destroyedMemory.count(m_NormalImageMemories[i]) == 0) {
+            vkFreeMemory(m_pDevice->getDevice(), m_NormalImageMemories[i], nullptr);
+            destroyedMemory.insert(m_NormalImageMemories[i]);
+        }
+    }
+    m_NormalImages.clear();
+    m_NormalImageMemories.clear();
+
     m_MipLevels.clear();
     m_TextureFormats.clear();
+
+    // 7. Destroy static fallback resources ONLY if not already destroyed
+    if (fallbackAlbedoView != VK_NULL_HANDLE && destroyedViews.count(fallbackAlbedoView) == 0) {
+        vkDestroyImageView(m_pDevice->getDevice(), fallbackAlbedoView, nullptr);
+        fallbackAlbedoView = VK_NULL_HANDLE;
+    }
+    if (fallbackAlbedoImage != VK_NULL_HANDLE && destroyedImages.count(fallbackAlbedoImage) == 0) {
+        vkDestroyImage(m_pDevice->getDevice(), fallbackAlbedoImage, nullptr);
+        fallbackAlbedoImage = VK_NULL_HANDLE;
+    }
+    if (fallbackAlbedoMemory != VK_NULL_HANDLE && destroyedMemory.count(fallbackAlbedoMemory) == 0) {
+        vkFreeMemory(m_pDevice->getDevice(), fallbackAlbedoMemory, nullptr);
+        fallbackAlbedoMemory = VK_NULL_HANDLE;
+    }
+    if (fallbackNormalView != VK_NULL_HANDLE && destroyedViews.count(fallbackNormalView) == 0) {
+        vkDestroyImageView(m_pDevice->getDevice(), fallbackNormalView, nullptr);
+        fallbackNormalView = VK_NULL_HANDLE;
+    }
+    if (fallbackNormalImage != VK_NULL_HANDLE && destroyedImages.count(fallbackNormalImage) == 0) {
+        vkDestroyImage(m_pDevice->getDevice(), fallbackNormalImage, nullptr);
+        fallbackNormalImage = VK_NULL_HANDLE;
+    }
+    if (fallbackNormalMemory != VK_NULL_HANDLE && destroyedMemory.count(fallbackNormalMemory) == 0) {
+        vkFreeMemory(m_pDevice->getDevice(), fallbackNormalMemory, nullptr);
+        fallbackNormalMemory = VK_NULL_HANDLE;
+    }
 }
 
 void Texture::create1x1Fallback(unsigned char* pixel, VkFormat format, Device* device, SwapChain* swapchain, CommandPool* commandPool, VkImage& image, VkDeviceMemory& memory, VkImageView& imageView, uint32_t& mipLevels)
@@ -306,7 +315,6 @@ void Texture::create1x1Fallback(unsigned char* pixel, VkFormat format, Device* d
     int texWidth = 1, texHeight = 1;
     VkDeviceSize imageSize = 4; // RGBA8
 
-    // Create staging buffer
     VkBuffer stagingBuffer{};
     VkDeviceMemory stagingBufferMemory{};
     Buffer::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -324,24 +332,18 @@ void Texture::create1x1Fallback(unsigned char* pixel, VkFormat format, Device* d
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, memory);
 
-    // Layout transition and copy
     transitionImageLayout(image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels);
     copyBufferToImage(stagingBuffer, image, texWidth, texHeight);
-
-    // Transition to shader read
     transitionImageLayout(image, format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, mipLevels);
 
-    // Clean up staging
     vkDestroyBuffer(device->getDevice(), stagingBuffer, nullptr);
     vkFreeMemory(device->getDevice(), stagingBufferMemory, nullptr);
 
-    // Create image view
     imageView = Image::createImageView(image, format, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels, device);
 }
 
 void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels)
 {
-    // Check if image format supports linear blitting
     VkFormatProperties formatProperties;
     vkGetPhysicalDeviceFormatProperties(m_pDevice->getPhysicalDevice(), imageFormat, &formatProperties);
 
@@ -377,7 +379,6 @@ void Texture::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWi
         dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
         dependencyInfo.imageMemoryBarrierCount = 1;
         dependencyInfo.pImageMemoryBarriers = &barrier;
-            
         vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 
         VkImageBlit blit{};
@@ -453,9 +454,6 @@ void Texture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayou
     dependencyInfo.imageMemoryBarrierCount = 1;
     dependencyInfo.pImageMemoryBarriers = &barrier;
 
-    VkPipelineStageFlags sourceStage;
-    VkPipelineStageFlags destinationStage;
-
     if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
     {
         barrier.srcAccessMask = 0;
@@ -473,10 +471,7 @@ void Texture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayou
     else
         throw std::invalid_argument("unsupported layout transition!");
 
-    vkCmdPipelineBarrier2(
-        commandBuffer,
-        &dependencyInfo);
-
+    vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 
     Commands::endSingleTimeCommands(commandBuffer, m_pCommandPool, m_pDevice);
 }
@@ -489,18 +484,12 @@ void Texture::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, 
     region.bufferOffset = 0;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
-
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.mipLevel = 0;
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
-
     region.imageOffset = { 0, 0, 0 };
-    region.imageExtent = {
-        width,
-        height,
-        1
-    };
+    region.imageExtent = { width, height, 1 };
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 

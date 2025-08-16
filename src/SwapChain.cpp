@@ -19,6 +19,7 @@ SwapChain::SwapChain(Device* device, Window* window, Surface* surface, CommandPo
 	createSwapChain();
     createImageViews();
 }
+
 SwapChain::~SwapChain()
 {
     delete m_pImage;
@@ -78,18 +79,27 @@ void SwapChain::createSwapChain()
     m_SwapChainImageFormat = surfaceFormat.format;
     m_SwapChainExtent = extent;
 }
+
 void SwapChain::cleanupSwapChain()
 {
     m_pImage->cleanup();
 
-    for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
-        vkDestroyImageView(m_pDevice->getDevice(), m_SwapChainImageViews[i], nullptr);
+    for (auto& view : m_SwapChainImageViews) {
+        if (view != VK_NULL_HANDLE) {
+            vkDestroyImageView(m_pDevice->getDevice(), view, nullptr);
+            view = VK_NULL_HANDLE;
+        }
     }
+    m_SwapChainImageViews.clear();
 
-    vkDestroySwapchainKHR(m_pDevice->getDevice(), m_SwapChain, nullptr);
+    if (m_SwapChain != VK_NULL_HANDLE) {
+        vkDestroySwapchainKHR(m_pDevice->getDevice(), m_SwapChain, nullptr);
+        m_SwapChain = VK_NULL_HANDLE;
+    }
 
     m_GBuffer.cleanup(m_pDevice->getDevice());
 }
+
 void SwapChain::recreateSwapChain()
 {
     int width = 0, height = 0;
@@ -118,6 +128,7 @@ VkSurfaceFormatKHR SwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfac
 
     return availableFormats[0];
 }
+
 VkPresentModeKHR SwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
     for (const auto& availablePresentMode : availablePresentModes) {
@@ -128,6 +139,7 @@ VkPresentModeKHR SwapChain::chooseSwapPresentMode(const std::vector<VkPresentMod
 
     return VK_PRESENT_MODE_FIFO_KHR;
 }
+
 VkExtent2D SwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
@@ -157,6 +169,7 @@ void SwapChain::createImageViews()
         m_SwapChainImageViews[i] = Image::createImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, m_pDevice);
     }
 }
+
 void SwapChain::createResources()
 {
     m_pImage->createColorResources(m_SwapChainExtent.width, m_SwapChainExtent.height, m_pDevice->getMsaaSamples(), m_SwapChainImageFormat);

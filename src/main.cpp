@@ -137,60 +137,82 @@ private:
 
     void cleanup() 
     {
-        // cleanup Vulkan Memory
-        m_pSwapChain->cleanupSwapChain();
-        m_pTexture->cleanupTextures();
+        // --- Destroy Vulkan resources ---
+        // 1. SceneManager: destroy semaphores/fences, etc.
+        if (m_pSceneManager) m_pSceneManager->cleanupScene();
 
-        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
-            m_pUniformBuffers[idx]->cleanupBuffer();
+        // 2. Texture: destroy images, image views, samplers, device memory
+        if (m_pTexture) m_pTexture->cleanupTextures();
+
+        // 3. Buffers: destroy all vertex/index/uniform buffers
+        if (!m_pVertexBuffers.empty()) {
+            for (size_t i = 0; i < m_pVertexBuffers.size(); ++i) {
+                if (m_pVertexBuffers[i]) m_pVertexBuffers[i]->cleanupBuffer();
+            }
+        }
+        if (!m_pIndexBuffers.empty()) {
+            for (size_t i = 0; i < m_pIndexBuffers.size(); ++i) {
+                if (m_pIndexBuffers[i]) m_pIndexBuffers[i]->cleanupBuffer();
+            }
+        }
+        if (!m_pUniformBuffers.empty()) {
+            for (size_t i = 0; i < m_pUniformBuffers.size(); ++i) {
+                if (m_pUniformBuffers[i]) m_pUniformBuffers[i]->cleanupBuffer();
+            }
         }
 
-        m_pDescriptorPool->cleanupDescriptorPool();
-        m_pGlobalDescriptorSetLayout->cleanupDescriptorSetLayout();
-        m_pUboDescriptorSetLayout->cleanupDescriptorSetLayout();
+        // 4. Descriptor sets, pools, layouts
+        if (m_pGlobalDescriptorSet) m_pGlobalDescriptorSet->cleanupDescriptorSet();
+        if (m_pDescriptorPool) m_pDescriptorPool->cleanupDescriptorPool();
+        if (m_pGlobalDescriptorSetLayout) m_pGlobalDescriptorSetLayout->cleanupDescriptorSetLayout();
+        if (m_pUboDescriptorSetLayout) m_pUboDescriptorSetLayout->cleanupDescriptorSetLayout();
 
-        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
-            m_pIndexBuffers[idx]->cleanupBuffer();
-        }
-        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
-            m_pVertexBuffers[idx]->cleanupBuffer();
-        }
+        // 5. Pipelines
+        if (m_pPipeline) m_pPipeline->cleanupPipelines();
 
-        m_pPipeline->cleanupPipelines();
-        m_pSceneManager->cleanupScene();
-        m_pCommandPool->destroyCommandPool();
-        m_pDevice->cleanupDevice();
-        m_pInstance->destroyDebugUtilsMessenger();
-        m_pSurface->destroySurface();
-        m_pInstance->destroyInstance();
-        m_pWindow->cleanupWindow();
+        // 6. SwapChain (includes G-buffer images, views, swapchain images/views)
+        if (m_pSwapChain) m_pSwapChain->cleanupSwapChain();
 
-        // delete Pointers
-        delete m_pSceneManager;
+        // 7. Command pool
+        if (m_pCommandPool) m_pCommandPool->destroyCommandPool();
 
-        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
-            delete m_pUniformBuffers[idx];
-        }
+        // 8. Device 
+        if (m_pDevice) m_pDevice->cleanupDevice();
 
+        // 9. Instance-level resources (debug messenger, surface, instance)
+        if (m_pInstance) m_pInstance->destroyDebugUtilsMessenger();
+        if (m_pSurface) m_pSurface->destroySurface();
+        if (m_pInstance) m_pInstance->destroyInstance();
+
+        // 10. Window system resources
+        if (m_pWindow) m_pWindow->cleanupWindow();
+
+
+        // --- Delete pointers ---
+        // Buffers
+        for (size_t i = 0; i < m_pVertexBuffers.size(); ++i) { delete m_pVertexBuffers[i]; }
+        m_pVertexBuffers.clear();
+        for (size_t i = 0; i < m_pIndexBuffers.size(); ++i) { delete m_pIndexBuffers[i]; }
+        m_pIndexBuffers.clear();
+        for (size_t i = 0; i < m_pUniformBuffers.size(); ++i) { delete m_pUniformBuffers[i]; }
+        m_pUniformBuffers.clear();
+
+        // Descriptor sets
+        delete m_pGlobalDescriptorSet;
         delete m_pDescriptorPool;
+        delete m_pGlobalDescriptorSetLayout;
+        delete m_pUboDescriptorSetLayout;
 
-        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
-            delete m_pVertexBuffers[idx];
-        }
-        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
-            delete m_pIndexBuffers[idx];
-        }
-
+        // Other objects
+        delete m_pSceneManager;
         delete m_pTexture;
-		delete m_pCommandPool;
+        delete m_pCommandPool;
         delete m_pPipeline;
-		delete m_pGlobalDescriptorSet;
-		delete m_pUboDescriptorSetLayout;
         delete m_pSwapChain;
         delete m_pDevice;
-		delete m_pSurface;
+        delete m_pSurface;
         delete m_pInstance;
-        delete m_pWindow; 
+        delete m_pWindow;
     }
 
     bool hasStencilComponent(VkFormat format) 

@@ -13,16 +13,17 @@ Instance::Instance()
 
 void Instance::destroyDebugUtilsMessenger()
 {
-    if (enableValidationLayers) {
+    if (enableValidationLayers && m_debugMessenger != VK_NULL_HANDLE) {
         destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
+        m_debugMessenger = VK_NULL_HANDLE;
     }
 }
 
 void Instance::destroyInstance()
 {
-    if (m_instance != VK_NULL_HANDLE) 
+    if (m_instance != VK_NULL_HANDLE)
     {
-        vkDestroyInstance(m_instance, nullptr); // vulkan instance
+        vkDestroyInstance(m_instance, nullptr);
         m_instance = VK_NULL_HANDLE;
     }
 }
@@ -128,6 +129,7 @@ void Instance::setupDebugMessenger(const std::vector<const char*>& validationLay
         throw std::runtime_error("failed to set up debug messenger!");
     }
 }
+
 void Instance::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
     createInfo = {};
@@ -150,6 +152,7 @@ VkResult Instance::createDebugUtilsMessengerEXT(VkInstance instance, const VkDeb
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
+
 void Instance::destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
 {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");

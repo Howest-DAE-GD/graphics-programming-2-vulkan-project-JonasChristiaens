@@ -31,9 +31,18 @@ void DescriptorSetLayout::createGlobalDescriptorSetLayout(uint32_t textureCount,
         nullptr // pImmutableSamplers
         });
 
-    // Binding 1: Texture array (sampled images)
+    // Binding 1: Albedo texture array (sampled images)
     bindings.push_back({
         1, // binding
+        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        textureCount,
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        nullptr
+        });
+
+    // Binding 6: Normal map texture array (sampled images)
+    bindings.push_back({
+        6, // binding
         VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
         textureCount,
         VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -96,6 +105,7 @@ void DescriptorSetLayout::createUboDescriptorSetLayout()
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr;
 
     std::array<VkDescriptorSetLayoutBinding, 1> bindings = { uboLayoutBinding };
 
