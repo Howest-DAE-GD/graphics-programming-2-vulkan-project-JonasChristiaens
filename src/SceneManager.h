@@ -11,6 +11,7 @@ class DescriptorSet;
 class DescriptorSetLayout;
 class Buffer;
 class Pipeline;
+class Camera;
 
 class SceneManager
 {
@@ -23,11 +24,10 @@ public:
 	uint32_t getCurrentFrame() const { return m_CurrentFrame; }
 
 	void loadModel();
-	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, 
-		CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets, 
-		DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline);
-	void recreateDependentResources(DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, 
-		DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline);
+	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet,
+		DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline, Camera* camera);
+	void recreateDependentResources(DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, DescriptorSet* globalDescriptorSet,
+		DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline);
 	void createSyncObjects();
 
 	void cleanupScene();
@@ -58,5 +58,5 @@ private:
     std::vector<std::string> m_metallicRoughnessPaths;
 
 	// private member functions
-	void updateUniformBuffer(uint32_t currentImage, std::vector<void*> uniformBuffersMapped);
+	void updateUniformBuffer(uint32_t currentImage, std::vector<void*> uniformBuffersMapped, Camera* camera);
 };

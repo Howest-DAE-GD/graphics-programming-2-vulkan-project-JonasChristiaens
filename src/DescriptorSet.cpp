@@ -7,20 +7,21 @@
 #include "DescriptorPool.h"
 #include "Buffer.h"
 
-#include <array>
 #include <stdexcept>
 
-DescriptorSet::DescriptorSet(Device* device, Texture* texture, DescriptorSetLayout* descriptorSetLayout, DescriptorPool* descriptorPool)
+DescriptorSet::DescriptorSet(Device* device, Texture* texture, DescriptorSetLayout* descriptorSetLayout, DescriptorPool* descriptorPool, size_t setCount)
     : m_pDevice(device)
     , m_pTexture(texture)
     , m_pDescriptorSetLayout(descriptorSetLayout)
     , m_pDescriptorPool(descriptorPool)
+    , m_SetCount(setCount)
 {
 }
 
 void DescriptorSet::createDescriptorSets()
 {
-    std::vector<VkDescriptorSetLayout> layouts(1, m_pDescriptorSetLayout->getDescriptorSetLayout());
+    std::vector<VkDescriptorSetLayout> layouts(m_SetCount, m_pDescriptorSetLayout->getDescriptorSetLayout());
+    m_DescriptorSets.resize(m_SetCount);
 
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -28,27 +29,29 @@ void DescriptorSet::createDescriptorSets()
     allocInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
     allocInfo.pSetLayouts = layouts.data();
 
-    if (vkAllocateDescriptorSets(m_pDevice->getDevice(), &allocInfo, &m_DescriptorSet) != VK_SUCCESS) {
+    if (vkAllocateDescriptorSets(m_pDevice->getDevice(), &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate descriptor sets!");
     }
 }
 
 void DescriptorSet::cleanupDescriptorSet()
 {
-    if (m_DescriptorSet != VK_NULL_HANDLE && m_pDescriptorPool)
+    if (!m_DescriptorSets.empty() && m_pDescriptorPool)
     {
-        VkResult result = vkFreeDescriptorSets(
+        vkFreeDescriptorSets(
             m_pDevice->getDevice(),
             m_pDescriptorPool->getDescriptorPool(),
-            1, &m_DescriptorSet
+            static_cast<uint32_t>(m_DescriptorSets.size()), m_DescriptorSets.data()
         );
-        
-        m_DescriptorSet = VK_NULL_HANDLE;
+        m_DescriptorSets.clear();
     }
 }
 
 void DescriptorSet::updateGlobalDescriptorSets(uint32_t textureCount)
 {
+    // Only one global set, so always use index 0
+    VkDescriptorSet dstSet = m_DescriptorSets[0];
+
     // Binding 0: Sampler
     VkDescriptorImageInfo samplerInfo{};
     samplerInfo.sampler = m_pTexture->getTextureSampler();
@@ -80,7 +83,7 @@ void DescriptorSet::updateGlobalDescriptorSets(uint32_t textureCount)
     descriptorWrites[0] = {
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         nullptr,
-        m_DescriptorSet,
+        dstSet,
         0, // binding
         0, // arrayElement
         1, // descriptorCount
@@ -94,7 +97,7 @@ void DescriptorSet::updateGlobalDescriptorSets(uint32_t textureCount)
     descriptorWrites[1] = {
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         nullptr,
-        m_DescriptorSet,
+        dstSet,
         1, // binding
         0, // arrayElement
         textureCount,
@@ -108,7 +111,7 @@ void DescriptorSet::updateGlobalDescriptorSets(uint32_t textureCount)
     descriptorWrites[2] = {
         VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
         nullptr,
-        m_DescriptorSet,
+        dstSet,
         6, // binding
         0, // arrayElement
         textureCount,
@@ -121,31 +124,33 @@ void DescriptorSet::updateGlobalDescriptorSets(uint32_t textureCount)
     vkUpdateDescriptorSets(m_pDevice->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
-void DescriptorSet::updateUboDescriptorSets(std::vector<Buffer*>& uniformBuffers)
+void DescriptorSet::updateUboDescriptorSets(const std::vector<Buffer*>& uniformBuffers)
 {
-    for (size_t idx{}; idx < uniformBuffers.size(); idx++)
+    for (size_t idx = 0; idx < m_SetCount; idx++)
     {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[idx]->getBuffer(); // specify buffer to bind
+        bufferInfo.buffer = uniformBuffers[idx]->getBuffer();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
-        std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = m_DescriptorSets[idx];
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
 
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = m_DescriptorSet;
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-        vkUpdateDescriptorSets(m_pDevice->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(m_pDevice->getDevice(), 1, &descriptorWrite, 0, nullptr);
     }
 }
 
 void DescriptorSet::updateGBufferDescriptorSets(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView)
 {
+    // Only one global set, so always use index 0
+    VkDescriptorSet dstSet = m_DescriptorSets[0];
+
     // Validation check
     if (positionView == VK_NULL_HANDLE || normalView == VK_NULL_HANDLE ||
         albedoView == VK_NULL_HANDLE || materialView == VK_NULL_HANDLE) {
@@ -166,7 +171,7 @@ void DescriptorSet::updateGBufferDescriptorSets(VkImageView positionView, VkImag
         descriptorWrites[i] = {
             VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             nullptr,
-            m_DescriptorSet,
+            dstSet,
             2 + i, // bindings 2,3,4,5
             0,
             1,

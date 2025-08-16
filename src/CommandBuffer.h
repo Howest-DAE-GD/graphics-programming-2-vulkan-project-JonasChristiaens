@@ -21,7 +21,7 @@ public:
 	std::vector<VkCommandBuffer> getCommandBuffers() const { return m_CommandBuffers; }
 
 	void createCommandBuffers();
-	void recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets);
+	void recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes, DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet);
 	
 private:
 	// private member variables

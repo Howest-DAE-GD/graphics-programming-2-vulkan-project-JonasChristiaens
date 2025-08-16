@@ -96,6 +96,7 @@ set(${PROJECT_NAME}_SOURCES
     "src/DescriptorPool.cpp"
     "src/SceneManager.cpp"
     "src/CommandBuffer.cpp"
+    "src/camera.cpp"
 )
 
 # Add the project executable

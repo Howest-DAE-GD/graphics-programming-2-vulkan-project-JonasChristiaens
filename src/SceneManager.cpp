@@ -10,6 +10,7 @@
 #include "DescriptorSetLayout.h"
 #include "Buffer.h"
 #include "Pipeline.h"
+#include "camera.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -129,9 +130,8 @@ void SceneManager::loadModel()
     }
 }
 
-void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped,
-    CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets,
-    DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline)
+void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet,
+    DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline, Camera* camera)
 {
     VkCommandBuffer rawCommandBuffer{ commandBuffers->getCommandBuffers()[m_CurrentFrame] };
     vkWaitForFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
@@ -146,12 +146,12 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    updateUniformBuffer(m_CurrentFrame, uniformBuffersMapped);
+    updateUniformBuffer(m_CurrentFrame, uniformBuffersMapped, camera);
 
     vkResetFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
 
     vkResetCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], 0);
-    commandBuffers->recordDeferredCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, m_Meshes, globalDescriptorSet, uboDescriptorSets);
+    commandBuffers->recordDeferredCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, m_Meshes, globalDescriptorSet, uboDescriptorSet);
 
     VkCommandBufferSubmitInfo commandBufferSubmitInfo{};
     commandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -195,7 +195,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window->wasWindowResized()) {
         window->resetWindowResizedFlag();
         m_pSwapChain->recreateSwapChain();
-        recreateDependentResources(globalDescriptorSetLayout, uboDescriptorSetLayout, globalDescriptorSet, uboDescriptorSets, uniformBuffers, pipeline);
+        recreateDependentResources(globalDescriptorSetLayout, uboDescriptorSetLayout, globalDescriptorSet, uboDescriptorSet, uniformBuffers, pipeline);
     }
     else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");
@@ -204,8 +204,8 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout,
-    DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline)
+void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, DescriptorSet* globalDescriptorSet, 
+    DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline)
 {
     vkDeviceWaitIdle(m_pDevice->getDevice());
 
@@ -221,10 +221,8 @@ void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescrip
         gBuffer.views[3]  // Material
     );
 
-    // 3. Update UBO descriptor sets
-    for (size_t idx = 0; idx < uboDescriptorSets.size(); ++idx) {
-        uboDescriptorSets[idx]->updateUboDescriptorSets(uniformBuffers);
-    }
+    // 3. Update UBO descriptor set
+	uboDescriptorSet->updateUboDescriptorSets(uniformBuffers);
 }
 
 void SceneManager::createSyncObjects()
@@ -264,21 +262,15 @@ void SceneManager::cleanupScene()
 }
 
 // Generate a new transformation every frame to make geometry spin around
-void SceneManager::updateUniformBuffer(uint32_t currentImage, std::vector<void*> uniformBuffersMapped)
+void SceneManager::updateUniformBuffer(uint32_t currentImage, std::vector<void*> uniformBuffersMapped, Camera* pCamera)
 {
-    // Calculate time in seconds
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
     // Define model, view and projection transformations in UBO
     UniformBufferObject ubo{};
     ubo.model = glm::mat4(1.0f);
-    ubo.model = glm::rotate(ubo.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     ubo.model = glm::scale(ubo.model, glm::vec3(0.01f));
-    ubo.view = glm::lookAt(glm::vec3(1.f, 0.f, 2.f), glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 0.f, 1.f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), m_pSwapChain->getExtent().width / (float)m_pSwapChain->getExtent().height, 0.1f, 20.0f);
+
+    ubo.view = pCamera->getViewMatrix();
+    ubo.proj = pCamera->getProjectionMatrix();
     ubo.proj[1][1] *= -1;
 
     // Copy data in UBO to current uniform buffer (! without staging buffer)

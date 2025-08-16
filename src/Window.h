@@ -22,8 +22,6 @@ public:
 
 private:
 	// private member variables
-
-
 	GLFWwindow* m_pWindow = nullptr;
 	std::string m_title;
 	bool m_framebufferResized = false;

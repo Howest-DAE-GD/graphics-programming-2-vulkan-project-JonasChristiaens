@@ -48,7 +48,7 @@ void CommandBuffer::createCommandBuffers()
 	}
 }
 
-void CommandBuffer::recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes, DescriptorSet* globalDescriptorSet, std::vector<DescriptorSet*> uboDescriptorSets)
+void CommandBuffer::recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, std::vector<Mesh> Meshes, DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -166,8 +166,8 @@ void CommandBuffer::recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, u
 
             // Bind descriptor sets
             VkDescriptorSet descriptorSets[] = {
-                globalDescriptorSet->getDescriptorSets(),
-                uboDescriptorSets[m_pSceneManager->getCurrentFrame()]->getDescriptorSets()
+                globalDescriptorSet->getDescriptorSet(0),
+                uboDescriptorSet->getDescriptorSet(m_pSceneManager->getCurrentFrame())
             };
             vkCmdBindDescriptorSets(
                 commandBuffer,
@@ -208,7 +208,7 @@ void CommandBuffer::recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, u
     }
 
     // ---- Geometry Pass ----
-    recordGeometryPass(commandBuffer, Meshes, globalDescriptorSet, uboDescriptorSets[m_pSceneManager->getCurrentFrame()]);
+    recordGeometryPass(commandBuffer, Meshes, globalDescriptorSet, uboDescriptorSet);
 
     // Transition G-buffer textures for reading (for lighting pass)
     {
@@ -344,8 +344,8 @@ void CommandBuffer::recordGeometryPass(VkCommandBuffer commandBuffer, const std:
 
         // Bind descriptor sets
         VkDescriptorSet descriptorSets[] = {
-            globalDescriptorSet->getDescriptorSets(),
-            uboDescriptorSet->getDescriptorSets()
+            globalDescriptorSet->getDescriptorSet(0),
+            uboDescriptorSet->getDescriptorSet(m_pSceneManager->getCurrentFrame())
         };
         vkCmdBindDescriptorSets(
             commandBuffer,
@@ -409,7 +409,7 @@ void CommandBuffer::recordLightingPass(VkCommandBuffer commandBuffer, uint32_t i
         commandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         m_pPipeline->getLightingPipelineLayout(),
-        0, 1, &globalDescriptorSet->getDescriptorSets(),
+        0, 1, &globalDescriptorSet->getDescriptorSets()[0],
         0, nullptr);
 
     // Draw fullscreen quad (3 vertices, no buffers needed)

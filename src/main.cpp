@@ -18,10 +18,12 @@
 #include "DescriptorPool.h"
 #include "SceneManager.h"
 #include "CommandBuffer.h"
+#include "camera.h"
 
 #include <stdexcept>
 #include <iostream>
-#include <SDL_events.h>
+#include <SDL_timer.h>
+#include "glm/ext.hpp"
 
 class HelloTriangleApplication {
 public:
@@ -29,6 +31,7 @@ public:
     {
        m_pWindow = new Window("Vulkan");
        initVulkan();
+
        mainLoop();
        cleanup();
     }
@@ -36,6 +39,11 @@ public:
 private:
     // Private class variables
     Window* m_pWindow = nullptr;
+
+    Camera* m_pCamera = nullptr;
+    double lastX = WIDTH / 2.0;
+    double lastY = HEIGHT / 2.0;
+    bool firstMouse = true;
 
     Instance* m_pInstance = nullptr;
 
@@ -46,10 +54,10 @@ private:
     SwapChain* m_pSwapChain = nullptr;
 
     DescriptorSet* m_pGlobalDescriptorSet = nullptr;
-	DescriptorSetLayout* m_pGlobalDescriptorSetLayout = nullptr;
+    DescriptorSetLayout* m_pGlobalDescriptorSetLayout = nullptr;
 
-    std::vector<DescriptorSet*> m_pUboDescriptorSets{};
-	DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;
+    DescriptorSet* m_pUboDescriptorSet = nullptr;
+    DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;
 
 	Pipeline* m_pPipeline = nullptr;
 
@@ -126,10 +134,39 @@ private:
 
     void mainLoop() 
     {
+	   // Create camera with initial position and orientation
+       float aspectRatio = static_cast<float>(WIDTH) / HEIGHT;
+       glm::vec3 camPos = glm::vec3(0.0f, 1.5f, 0.0f);
+       float yaw = 0.0f;   // Looking down +Z
+       float pitch = 0.0f; // Level
+
+       m_pCamera = new Camera(camPos, yaw, pitch, 90.0f, aspectRatio, 0.1f, 100.0f);
+
+       glfwSetWindowUserPointer(m_pWindow->getGLFWwindow(), this);
+       glfwSetCursorPosCallback(m_pWindow->getGLFWwindow(), mouse_callback);
+       glfwSetInputMode(m_pWindow->getGLFWwindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+       float lastFrameTime = glfwGetTime();
+
        // Loop until the user closes the window
        while (!m_pWindow->shouldClose()) {
+           float currentFrameTime = glfwGetTime();
+           float deltaTime = currentFrameTime - lastFrameTime;
+           lastFrameTime = currentFrameTime;
+
            m_pWindow->pollEvents();
-           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSets, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pUniformBuffers, m_pPipeline);
+
+           GLFWwindow* window = m_pWindow->getGLFWwindow();
+           if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_W, deltaTime);
+           if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_S, deltaTime);
+           if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_A, deltaTime);
+           if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_D, deltaTime);
+           if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_SPACE, deltaTime);
+           if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_LEFT_CONTROL, deltaTime);
+
+           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSet, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pUniformBuffers, m_pPipeline, m_pCamera);
+           
+		   //std::cout << m_pCamera->getPosition() << std::endl;
        }
 
        vkDeviceWaitIdle(m_pDevice->getDevice());
@@ -180,8 +217,8 @@ private:
         if (m_pDevice) m_pDevice->cleanupDevice();
 
         // 9. Instance-level resources (debug messenger, surface, instance)
-        if (m_pInstance) m_pInstance->destroyDebugUtilsMessenger();
         if (m_pSurface) m_pSurface->destroySurface();
+        if (m_pInstance) m_pInstance->destroyDebugUtilsMessenger();
         if (m_pInstance) m_pInstance->destroyInstance();
 
         // 10. Window system resources
@@ -213,6 +250,8 @@ private:
         delete m_pSurface;
         delete m_pInstance;
         delete m_pWindow;
+
+        delete m_pCamera;
     }
 
     bool hasStencilComponent(VkFormat format) 
@@ -226,7 +265,7 @@ private:
         m_pGlobalDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
 		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getAlbedoPaths().size(), true);
 
-		m_pGlobalDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pGlobalDescriptorSetLayout, m_pDescriptorPool); 
+		m_pGlobalDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pGlobalDescriptorSetLayout, m_pDescriptorPool, 1); 
         m_pGlobalDescriptorSet->createDescriptorSets();
 		m_pGlobalDescriptorSet->updateGlobalDescriptorSets(m_pSceneManager->getAlbedoPaths().size()); 
 
@@ -241,15 +280,11 @@ private:
 
         // Create Ubo Descriptor Set
         m_pUboDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
-		m_pUboDescriptorSetLayout->createUboDescriptorSetLayout();
+        m_pUboDescriptorSetLayout->createUboDescriptorSetLayout();
 
-        for (int idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++)
-        {
-            m_pUboDescriptorSets.push_back(new DescriptorSet(m_pDevice, m_pTexture, m_pUboDescriptorSetLayout, m_pDescriptorPool)); 
-            m_pUboDescriptorSets[idx]->createDescriptorSets(); 
-
-            m_pUboDescriptorSets[idx]->updateUboDescriptorSets(m_pUniformBuffers);
-        }
+        m_pUboDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pUboDescriptorSetLayout, m_pDescriptorPool, MAX_FRAMES_IN_FLIGHT);
+        m_pUboDescriptorSet->createDescriptorSets();
+        m_pUboDescriptorSet->updateUboDescriptorSets(m_pUniformBuffers);
     }
 
     // Function that allocates the buffers
@@ -268,6 +303,21 @@ private:
             // => persistent mapping
             vkMapMemory(m_pDevice->getDevice(), m_pUniformBuffers[idx]->getBufferMemory(), 0, bufferSize, 0, &m_UniformBuffersMapped[idx]);
         }
+    }
+
+    // Mouse callback
+    static void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+        HelloTriangleApplication* app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        if (app->firstMouse) {
+            app->lastX = xpos;
+            app->lastY = ypos;
+            app->firstMouse = false;
+        }
+        float xoffset = xpos - app->lastX;
+        float yoffset = app->lastY - ypos; // reversed: y ranges bottom to top
+        app->lastX = xpos;
+        app->lastY = ypos;
+        app->m_pCamera->processMouse(xoffset, yoffset);
     }
 };
 

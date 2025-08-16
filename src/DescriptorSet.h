@@ -9,15 +9,20 @@ class Buffer;
 class DescriptorSet
 {
 public:
-	DescriptorSet(Device* device, Texture* texture, DescriptorSetLayout* descriptorSetLayout, DescriptorPool* descriptorPool);
+	DescriptorSet(Device* device, Texture* texture, DescriptorSetLayout* descriptorSetLayout, DescriptorPool* descriptorPool, size_t setCount);
 	~DescriptorSet() = default;
 
-	const VkDescriptorSet& getDescriptorSets() const { return m_DescriptorSet; }
+	// Return all descriptor sets (for binding per frame)
+	const std::vector<VkDescriptorSet>& getDescriptorSets() const { return m_DescriptorSets; }
+	// Return descriptor set for a particular frame
+	VkDescriptorSet getDescriptorSet(size_t frame) const { return m_DescriptorSets[frame]; }
+
+	//const VkDescriptorSet& getDescriptorSets() const { return m_DescriptorSet; }
 	void createDescriptorSets();
 	void cleanupDescriptorSet();
 
 	void updateGlobalDescriptorSets(uint32_t textureCount);
-	void updateUboDescriptorSets(std::vector<Buffer*>& uniformBuffers);
+	void updateUboDescriptorSets(const std::vector<Buffer*>& uniformBuffers);
 	void updateGBufferDescriptorSets(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView);
 
 private:
@@ -26,5 +31,6 @@ private:
 	DescriptorSetLayout* m_pDescriptorSetLayout;
 	DescriptorPool* m_pDescriptorPool;
 
-	VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> m_DescriptorSets;
+	size_t m_SetCount;
 };

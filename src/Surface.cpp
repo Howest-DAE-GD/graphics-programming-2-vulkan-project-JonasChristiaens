@@ -2,6 +2,7 @@
 #include "Surface.h"
 #include "Instance.h"
 #include <stdexcept>
+#include <iostream>
 
 Surface::Surface(Instance* instance, GLFWwindow* window)
 	: m_pInstance(instance)
@@ -19,7 +20,11 @@ void Surface::createSurface(VkInstance instance, GLFWwindow* window)
 void Surface::destroySurface()
 {
     if (m_surface != VK_NULL_HANDLE && m_pInstance != nullptr) {
+        std::cout << "[Surface] Destroying surface: " << m_surface << std::endl;
         vkDestroySurfaceKHR(m_pInstance->getInstance(), m_surface, nullptr);
         m_surface = VK_NULL_HANDLE;
+    }
+    else {
+        std::cout << "[Surface] Surface already destroyed or instance missing." << std::endl;
     }
 }
