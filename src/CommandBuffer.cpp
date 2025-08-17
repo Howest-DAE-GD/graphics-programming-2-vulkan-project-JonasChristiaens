@@ -176,6 +176,15 @@ void CommandBuffer::recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, u
                 0, 2, descriptorSets, 0, nullptr
             );
 
+            vkCmdPushConstants(
+                commandBuffer,
+                m_pPipeline->getDepthPrepassLayout(),
+                VK_SHADER_STAGE_VERTEX_BIT,
+                0,
+                sizeof(uint32_t),
+                &Meshes[i].materialIndex
+            );
+
             vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Meshes[i].indices.size()), 1, 0, 0, 0);
         }
 
@@ -237,6 +246,32 @@ void CommandBuffer::recordDeferredCommandBuffer(VkCommandBuffer commandBuffer, u
             0, nullptr,
             0, nullptr,
             static_cast<uint32_t>(barriers.size()), barriers.data()
+        );
+    }
+
+    // ---- Depth image layout transition for sampling in lighting pass ----
+    {
+        VkImageMemoryBarrier depthToShaderReadBarrier{};
+        depthToShaderReadBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        depthToShaderReadBarrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+        depthToShaderReadBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        depthToShaderReadBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+        depthToShaderReadBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        depthToShaderReadBarrier.image = m_pSwapChain->m_pImage->getDepthImage();
+        depthToShaderReadBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthToShaderReadBarrier.subresourceRange.baseMipLevel = 0;
+        depthToShaderReadBarrier.subresourceRange.levelCount = 1;
+        depthToShaderReadBarrier.subresourceRange.baseArrayLayer = 0;
+        depthToShaderReadBarrier.subresourceRange.layerCount = 1;
+
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &depthToShaderReadBarrier
         );
     }
 

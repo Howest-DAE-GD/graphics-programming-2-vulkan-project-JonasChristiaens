@@ -9,6 +9,9 @@ public:
 	~Instance() = default;
 
 	// public member functions
+	void createInstance();
+	void setupDebugMessenger(const std::vector<const char*>& validationLayers);
+
 	VkInstance getInstance() const { return m_instance; }
 	VkDebugUtilsMessengerEXT getDebugMessenger() const { return m_debugMessenger; }
 
@@ -21,11 +24,9 @@ private:
 	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
 	// private member functions
-	void createInstance();
 	bool checkValidationLayerSupport();
 	std::vector<const char*> getRequiredExtensions();
 
-	void setupDebugMessenger(const std::vector<const char*>& validationLayers);
 	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
 	VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);

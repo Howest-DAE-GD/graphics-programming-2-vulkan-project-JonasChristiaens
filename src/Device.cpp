@@ -34,7 +34,7 @@ void Device::pickPhysicalDevice()
 
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
-            std::cout << "Selected GPU: " << props.deviceName << std::endl;
+            //std::cout << "Selected GPU: " << props.deviceName << std::endl;
 
             break;
         }

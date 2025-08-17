@@ -80,8 +80,13 @@ private:
     // Private class Functions
     void initVulkan() 
     {
-        m_pInstance = new Instance(); // createInstance & setupDebugMessenger
-		m_pSurface = new Surface(m_pInstance, m_pWindow->getGLFWwindow()); // createSurface
+        m_pInstance = new Instance();
+        m_pInstance->createInstance(); // createInstance 
+        m_pInstance->setupDebugMessenger(validationLayers); // setupDebugMessenger
+
+		m_pSurface = new Surface(m_pInstance, m_pWindow->getGLFWwindow());
+		m_pSurface->createSurface(m_pInstance->getInstance(), m_pWindow->getGLFWwindow()); // createSurface
+
 		m_pDevice = new Device(m_pSurface, m_pInstance); // pickPhysicalDevice & createLogicalDevice
 		m_pCommandPool = new CommandPool(m_pDevice); // createCommandPool
 		m_pSwapChain = new SwapChain(m_pDevice, m_pWindow, m_pSurface, m_pCommandPool); // createSwapChain & createImageViews
@@ -164,7 +169,7 @@ private:
            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_SPACE, deltaTime);
            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_LEFT_CONTROL, deltaTime);
 
-           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSet, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pUniformBuffers, m_pPipeline, m_pCamera);
+           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSet, m_pUniformBuffers, m_pCamera, m_pTexture);
            
 		   //std::cout << m_pCamera->getPosition() << std::endl;
        }
@@ -263,7 +268,7 @@ private:
     {
         // Create Global Descriptor Set (with G-buffer bindings)
         m_pGlobalDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
-		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getAlbedoPaths().size(), true);
+		m_pGlobalDescriptorSetLayout->createGlobalDescriptorSetLayout(m_pSceneManager->getAlbedoPaths().size(), true, true);
 
 		m_pGlobalDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pGlobalDescriptorSetLayout, m_pDescriptorPool, 1); 
         m_pGlobalDescriptorSet->createDescriptorSets();
@@ -276,6 +281,17 @@ private:
             gBuffer.views[1], // Normal
             gBuffer.views[2], // Albedo
             gBuffer.views[3]  // Material
+        );
+
+        // Update lighting descriptor set
+        m_pGlobalDescriptorSet->updateLightingDescriptorSet(
+            gBuffer.views[0], // Position
+            gBuffer.views[1], // Normal
+            gBuffer.views[2], // Albedo
+            gBuffer.views[3], // Material
+            m_pSwapChain->m_pImage->getDepthImageView(), // Depth
+            m_pTexture->getTextureSampler(), // Sampler
+            m_pUniformBuffers[0]->getBuffer() // Camera buffer
         );
 
         // Create Ubo Descriptor Set

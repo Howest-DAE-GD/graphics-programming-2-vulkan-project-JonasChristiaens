@@ -7,8 +7,6 @@
 
 Instance::Instance()
 {
-	createInstance();
-    setupDebugMessenger(validationLayers);
 }
 
 void Instance::destroyDebugUtilsMessenger()
@@ -21,8 +19,11 @@ void Instance::destroyDebugUtilsMessenger()
 
 void Instance::destroyInstance()
 {
+	std::cout << "[Instance] m_instance before operation: " << m_instance << std::endl;
+
     if (m_instance != VK_NULL_HANDLE)
     {
+		std::cout << "[Instance] Destroying instance: " << m_instance << std::endl;
         vkDestroyInstance(m_instance, nullptr);
         m_instance = VK_NULL_HANDLE;
     }
@@ -70,6 +71,8 @@ void Instance::createInstance()
     if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS) {
         throw std::runtime_error("failed to create instance!");
     }
+
+    std::cout << "[Instance] Creating instance: " << m_instance << std::endl;
 }
 
 // Check if the requested validation layers are available

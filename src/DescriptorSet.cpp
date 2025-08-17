@@ -184,3 +184,60 @@ void DescriptorSet::updateGBufferDescriptorSets(VkImageView positionView, VkImag
 
     vkUpdateDescriptorSets(m_pDevice->getDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
+
+void DescriptorSet::updateLightingDescriptorSet(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView, VkImageView depthView, VkSampler sampler, VkBuffer cameraBuffer)
+{
+    VkDescriptorSet dstSet = m_DescriptorSets[0];
+
+    std::array<VkDescriptorImageInfo, 4> gBufferInfos{};
+    gBufferInfos[0] = { sampler, positionView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    gBufferInfos[1] = { sampler, normalView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    gBufferInfos[2] = { sampler, albedoView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    gBufferInfos[3] = { sampler, materialView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+
+    std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+    for (uint32_t i = 0; i < 4; i++) {
+        descriptorWrites[i] = {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            nullptr,
+            dstSet,
+            2 + i, // bindings 2,3,4,5
+            0,
+            1,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            &gBufferInfos[i],
+            nullptr,
+            nullptr
+        };
+    }
+
+    // Depth texture binding 7
+    VkDescriptorImageInfo depthInfo{ sampler, depthView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    VkWriteDescriptorSet depthWrite{};
+    depthWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    depthWrite.dstSet = dstSet;
+    depthWrite.dstBinding = 7;
+    depthWrite.descriptorCount = 1;
+    depthWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    depthWrite.pImageInfo = &depthInfo;
+
+    // Camera UBO binding 8
+    VkDescriptorBufferInfo camBufferInfo{};
+    camBufferInfo.buffer = cameraBuffer;
+    camBufferInfo.offset = 0;
+    camBufferInfo.range = sizeof(UniformBufferObject);
+
+    VkWriteDescriptorSet camWrite{};
+    camWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    camWrite.dstSet = dstSet;
+    camWrite.dstBinding = 8;
+    camWrite.descriptorCount = 1;
+    camWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    camWrite.pBufferInfo = &camBufferInfo;
+
+    std::array<VkWriteDescriptorSet, 6> allWrites = {
+        descriptorWrites[0], descriptorWrites[1], descriptorWrites[2], descriptorWrites[3], depthWrite, camWrite
+    };
+
+    vkUpdateDescriptorSets(m_pDevice->getDevice(), static_cast<uint32_t>(allWrites.size()), allWrites.data(), 0, nullptr);
+}

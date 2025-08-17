@@ -56,6 +56,24 @@ std::array<VkVertexInputAttributeDescription, 6> Vertex::getAttributeDescription
     return attributeDescriptions;
 }
 
+std::array<VkVertexInputAttributeDescription, 2> Vertex::getDepthPrepassAttributeDescriptions()
+{
+    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 2;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, texCoord);
+
+    return attributeDescriptions;
+
+}
+
 bool Vertex::operator==(const Vertex& other) const {
     return pos == other.pos && color == other.color && texCoord == other.texCoord;
 }

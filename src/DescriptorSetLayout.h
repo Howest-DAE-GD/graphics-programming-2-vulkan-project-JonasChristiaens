@@ -13,7 +13,7 @@ public:
 	void cleanupDescriptorSetLayout();
 
 	// Create layout for global descriptor set (sampler, albedo array, normal map array, G-buffer textures)
-	void createGlobalDescriptorSetLayout(uint32_t textureCount, bool includeGBuffers = true);
+	void createGlobalDescriptorSetLayout(uint32_t textureCount, bool includeGBuffers = true, bool includeCameraUBO = false);
 
 	// Create layout for UBO descriptor set
 	void createUboDescriptorSetLayout();

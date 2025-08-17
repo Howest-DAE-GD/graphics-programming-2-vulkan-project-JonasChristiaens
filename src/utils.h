@@ -53,6 +53,7 @@ struct Vertex {
 
     static VkVertexInputBindingDescription getBindingDescription();
     static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 2> getDepthPrepassAttributeDescriptions();
 
     bool operator==(const Vertex& other) const;
 };
@@ -69,9 +70,15 @@ struct Mesh {
 };
 
 struct UniformBufferObject {
+	// Model, view and projection matrices
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
+
+	// Camera position and inverse matrices for lighting calculations
+    alignas(16) glm::vec3 cameraPos;
+    alignas(16) glm::mat4 invView;
+    alignas(16) glm::mat4 invProj;
 };
 
 struct GBuffer {

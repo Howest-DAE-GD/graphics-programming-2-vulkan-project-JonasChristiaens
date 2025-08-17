@@ -17,13 +17,14 @@ public:
 	// Return descriptor set for a particular frame
 	VkDescriptorSet getDescriptorSet(size_t frame) const { return m_DescriptorSets[frame]; }
 
-	//const VkDescriptorSet& getDescriptorSets() const { return m_DescriptorSet; }
 	void createDescriptorSets();
 	void cleanupDescriptorSet();
 
 	void updateGlobalDescriptorSets(uint32_t textureCount);
 	void updateUboDescriptorSets(const std::vector<Buffer*>& uniformBuffers);
 	void updateGBufferDescriptorSets(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView);
+	void updateLightingDescriptorSet(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView,
+		VkImageView depthView, VkSampler sampler, VkBuffer cameraBuffer);
 
 private:
 	Device* m_pDevice;

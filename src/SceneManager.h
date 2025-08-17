@@ -8,10 +8,9 @@ class SwapChain;
 class Window;
 class CommandBuffer;
 class DescriptorSet;
-class DescriptorSetLayout;
 class Buffer;
-class Pipeline;
 class Camera;
+class Texture;
 
 class SceneManager
 {
@@ -24,15 +23,13 @@ public:
 	uint32_t getCurrentFrame() const { return m_CurrentFrame; }
 
 	void loadModel();
-	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet,
-		DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline, Camera* camera);
-	void recreateDependentResources(DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, DescriptorSet* globalDescriptorSet,
-		DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline);
+	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, 
+		DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Camera* camera, Texture* texture);
+	void recreateDependentResources(DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Texture* texture);
 	void createSyncObjects();
 
 	void cleanupScene();
 	std::vector<Mesh>& getMeshes() { return m_Meshes; }
-	//std::vector<std::string>& getTexturePaths() { return m_texturePaths; }
 
 	// Accessors for PBR texture paths
 	const std::vector<std::string>& getAlbedoPaths() const { return m_albedoPaths; }
@@ -48,11 +45,7 @@ private:
 	std::vector<VkFence> m_InFlightFences{};
 	uint32_t m_CurrentFrame{};
 
-	/*std::vector<std::string> m_texturePaths{};
-	std::vector<std::string> m_normalPaths{};*/
-
 	std::vector<Mesh> m_Meshes{};
-
 	std::vector<std::string> m_albedoPaths;
     std::vector<std::string> m_normalPaths;
     std::vector<std::string> m_metallicRoughnessPaths;

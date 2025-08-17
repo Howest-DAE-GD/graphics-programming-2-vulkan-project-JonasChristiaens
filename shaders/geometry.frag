@@ -48,6 +48,6 @@ void main() {
     // Write to G-buffer
     outPosition = vec4(fragPosition, 1.0);
     outNormal = octEncode(worldNormal); // oct-encoded for efficient storage
-    outAlbedo = texColor;
+    outAlbedo = texColor; 
     outMaterial = fragMaterial;
 }

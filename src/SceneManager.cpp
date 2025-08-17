@@ -7,10 +7,9 @@
 #include "Window.h"
 #include "CommandBuffer.h"
 #include "DescriptorSet.h"
-#include "DescriptorSetLayout.h"
 #include "Buffer.h"
-#include "Pipeline.h"
 #include "camera.h"
+#include "Texture.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -119,7 +118,7 @@ void SceneManager::loadModel()
         m_Meshes.push_back(newMesh);
     }
 
-    std::cout << "Loaded " << m_Meshes.size() << " meshes from " << MODEL_PATH << std::endl;
+    /*std::cout << "Loaded " << m_Meshes.size() << " meshes from " << MODEL_PATH << std::endl;
 
     // Debug: print found texture paths per material
     for (size_t i = 0; i < numMaterials; ++i) {
@@ -127,11 +126,11 @@ void SceneManager::loadModel()
         std::cout << "  Albedo: " << m_albedoPaths[i] << "\n";
         std::cout << "  Normal: " << m_normalPaths[i] << "\n";
         std::cout << "  MetallicRoughness: " << m_metallicRoughnessPaths[i] << "\n";
-    }
+    }*/
 }
 
-void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet,
-    DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline, Camera* camera)
+void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, 
+    DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Camera* camera, Texture* texture)
 {
     VkCommandBuffer rawCommandBuffer{ commandBuffers->getCommandBuffers()[m_CurrentFrame] };
     vkWaitForFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
@@ -195,7 +194,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window->wasWindowResized()) {
         window->resetWindowResizedFlag();
         m_pSwapChain->recreateSwapChain();
-        recreateDependentResources(globalDescriptorSetLayout, uboDescriptorSetLayout, globalDescriptorSet, uboDescriptorSet, uniformBuffers, pipeline);
+        recreateDependentResources(globalDescriptorSet, uboDescriptorSet, uniformBuffers, texture);
     }
     else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");
@@ -204,8 +203,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, DescriptorSet* globalDescriptorSet, 
-    DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Pipeline* pipeline)
+void SceneManager::recreateDependentResources(DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Texture* texture)
 {
     vkDeviceWaitIdle(m_pDevice->getDevice());
 
@@ -219,6 +217,17 @@ void SceneManager::recreateDependentResources(DescriptorSetLayout* globalDescrip
         gBuffer.views[1], // Normal
         gBuffer.views[2], // Albedo
         gBuffer.views[3]  // Material
+    );
+
+    //  Update lighting descriptor set
+    globalDescriptorSet->updateLightingDescriptorSet(
+        gBuffer.views[0], // Position
+        gBuffer.views[1], // Normal
+        gBuffer.views[2], // Albedo
+        gBuffer.views[3], // Material
+        m_pSwapChain->m_pImage->getDepthImageView(), // Depth
+        texture->getTextureSampler(), // Sampler
+        uniformBuffers[0]->getBuffer() // Camera buffer
     );
 
     // 3. Update UBO descriptor set
@@ -273,6 +282,10 @@ void SceneManager::updateUniformBuffer(uint32_t currentImage, std::vector<void*>
     ubo.proj = pCamera->getProjectionMatrix();
     ubo.proj[1][1] *= -1;
 
-    // Copy data in UBO to current uniform buffer (! without staging buffer)
+    ubo.cameraPos = pCamera->getPosition();
+    ubo.invView = glm::inverse(ubo.view);
+    ubo.invProj = glm::inverse(ubo.proj);
+
+    // Copy data in UBO to current uniform buffer
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

@@ -18,75 +18,25 @@ void DescriptorSetLayout::cleanupDescriptorSetLayout()
 }
 
 // Provide details about every descriptor binding used in shaders for pipeline creation
-void DescriptorSetLayout::createGlobalDescriptorSetLayout(uint32_t textureCount, bool includeGBuffers)
+void DescriptorSetLayout::createGlobalDescriptorSetLayout(uint32_t textureCount, bool includeGBuffers, bool includeCameraUBO)
 {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
+    bindings.push_back({ 0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
+    bindings.push_back({ 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, textureCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
+    bindings.push_back({ 6, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, textureCount, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
 
-    // Binding 0: Sampler (shared sampler for all textures)
-    bindings.push_back({
-        0, // binding
-        VK_DESCRIPTOR_TYPE_SAMPLER,
-        1, // descriptorCount
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        nullptr // pImmutableSamplers
-        });
+    if (includeGBuffers) {
+        bindings.push_back({ 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
+        bindings.push_back({ 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
+        bindings.push_back({ 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
+        bindings.push_back({ 5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
+        // Depth texture for reconstruction
+        bindings.push_back({ 7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
+    }
 
-    // Binding 1: Albedo texture array (sampled images)
-    bindings.push_back({
-        1, // binding
-        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        textureCount,
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        nullptr
-        });
-
-    // Binding 6: Normal map texture array (sampled images)
-    bindings.push_back({
-        6, // binding
-        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        textureCount,
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        nullptr
-        });
-
-    // Add G-buffer bindings if needed
-    if (includeGBuffers)
-    {
-        // Binding 2: G-Buffer Position (RGBA16F)
-        bindings.push_back({
-            2,
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            1,
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            nullptr
-            });
-
-        // Binding 3: G-Buffer Normal (RG16_SNORM)
-        bindings.push_back({
-            3,
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            1,
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            nullptr
-            });
-
-        // Binding 4: G-Buffer Albedo (RGBA8_UNORM)
-        bindings.push_back({
-            4,
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            1,
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            nullptr
-            });
-
-        // Binding 5: G-Buffer Material (RG8_UNORM)
-        bindings.push_back({
-            5,
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            1,
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            nullptr
-            });
+    if (includeCameraUBO) {
+        // Camera UBO (UniformBufferObject), binding 8
+        bindings.push_back({ 8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
     }
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};

@@ -3,6 +3,7 @@
 #include "utils.h"
 
 #include <stdexcept>
+#include <iostream>
 
 Window::Window(const std::string& title)
     : m_title(title)
@@ -22,6 +23,7 @@ Window::Window(const std::string& title)
         glfwTerminate();
         throw std::runtime_error("Failed to create GLFW window");
     }
+    std::cout << "[Window] Creating window: " << m_pWindow << std::endl;
 
     glfwSetWindowUserPointer(m_pWindow, this);
     glfwSetFramebufferSizeCallback(m_pWindow, framebufferResizeCallback);
@@ -46,6 +48,8 @@ void Window::cleanupWindow()
 {
     if (m_pWindow)
     {
+        std::cout << "[Window] destroying window: " << m_pWindow << std::endl;
+
         // Destroy the window
         glfwDestroyWindow(m_pWindow);
         m_pWindow = nullptr;

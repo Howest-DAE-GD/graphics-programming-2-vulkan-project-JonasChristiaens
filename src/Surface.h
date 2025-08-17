@@ -9,14 +9,12 @@ public:
 	~Surface() = default;
 
 	// public member functions
-	VkSurfaceKHR getSurface() const { return m_surface; }
 	void destroySurface();
+	void createSurface(VkInstance instance, GLFWwindow* window);
+	VkSurfaceKHR getSurface() const { return m_surface; }
 
 private:
 	// private member variables
 	VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 	Instance* m_pInstance = nullptr;
-	
-	// private member functions
-	void createSurface(VkInstance instance, GLFWwindow* window);
 };
