@@ -31,7 +31,11 @@ void Surface::destroySurface()
 
     if (m_surface != VK_NULL_HANDLE && m_pInstance != nullptr) {
         std::cout << "[Surface] Destroying surface: " << m_surface << std::endl;
-        vkDestroySurfaceKHR(m_pInstance->getInstance(), m_surface, nullptr);
+
+        VkInstance instance = m_pInstance->getInstance();
+        if (instance != VK_NULL_HANDLE) {
+            vkDestroySurfaceKHR(instance, m_surface, nullptr);
+        }
         m_surface = VK_NULL_HANDLE;
     }
     else {

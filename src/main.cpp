@@ -31,51 +31,56 @@ public:
     {
        m_pWindow = new Window("Vulkan");
        initVulkan();
-
        mainLoop();
        cleanup();
     }
 
 private:
     // Private class variables
-    Window* m_pWindow = nullptr;
+    Window*                 m_pWindow = nullptr;
 
-    Camera* m_pCamera = nullptr;
-    double lastX = WIDTH / 2.0;
-    double lastY = HEIGHT / 2.0;
-    bool firstMouse = true;
+    Camera*                 m_pCamera = nullptr;
+    double                  lastX = WIDTH / 2.0;
+    double                  lastY = HEIGHT / 2.0;
+    bool                    firstMouse = true;
 
-    Instance* m_pInstance = nullptr;
+    Instance*               m_pInstance = nullptr;
 
-	Surface* m_pSurface = nullptr;
+	Surface*                m_pSurface = nullptr;
 
-	Device* m_pDevice = nullptr;
+	Device*                 m_pDevice = nullptr;
 
-    SwapChain* m_pSwapChain = nullptr;
+    SwapChain*              m_pSwapChain = nullptr;
 
-    DescriptorSet* m_pGlobalDescriptorSet = nullptr;
-    DescriptorSetLayout* m_pGlobalDescriptorSetLayout = nullptr;
+    DescriptorSet*          m_pGlobalDescriptorSet = nullptr;
+    DescriptorSetLayout*    m_pGlobalDescriptorSetLayout = nullptr;
 
-    DescriptorSet* m_pUboDescriptorSet = nullptr;
-    DescriptorSetLayout* m_pUboDescriptorSetLayout = nullptr;
+    DescriptorSet*          m_pUboDescriptorSet = nullptr;
+    DescriptorSetLayout*    m_pUboDescriptorSetLayout = nullptr;
 
-	Pipeline* m_pPipeline = nullptr;
+    DescriptorSet*          m_pTonemapDescriptorSet = nullptr;
+    DescriptorSetLayout*    m_pTonemapDescriptorSetLayout = nullptr;
 
-	CommandPool* m_pCommandPool = nullptr;
+	Pipeline*               m_pPipeline = nullptr;
 
-	Texture* m_pTexture = nullptr;
+	CommandPool*            m_pCommandPool = nullptr;
 
-	std::vector<Buffer*> m_pVertexBuffers{};
-    std::vector<Buffer*> m_pIndexBuffers{};
+	Texture*                m_pTexture = nullptr;
 
-    std::vector<Buffer*> m_pUniformBuffers{};
-    std::vector<void*> m_UniformBuffersMapped{};
+	std::vector<Buffer*>    m_pVertexBuffers{};
+    std::vector<Buffer*>    m_pIndexBuffers{};
 
-    DescriptorPool* m_pDescriptorPool = nullptr;
+    std::vector<Buffer*>    m_pUniformBuffers{};
+    std::vector<void*>      m_UniformBuffersMapped{};
 
-    CommandBuffer* m_pCommandBuffer = nullptr;
+    std::vector<Buffer*>    m_pCameraSettingsBuffers{};
+    std::vector<void*>      m_CameraSettingsBuffersMapped{};
 
-    SceneManager* m_pSceneManager = nullptr;
+    DescriptorPool*         m_pDescriptorPool = nullptr;
+
+    CommandBuffer*          m_pCommandBuffer = nullptr;
+
+    SceneManager*           m_pSceneManager = nullptr;
 
     // Private class Functions
     void initVulkan() 
@@ -110,6 +115,7 @@ private:
         }
 
         createUniformBuffers();
+        createCameraSettingsBuffers();
         
         // Calculate descriptor pool requirements
         size_t numTextures = m_pSceneManager->getAlbedoPaths().size();
@@ -124,14 +130,17 @@ private:
             { VK_DESCRIPTOR_TYPE_SAMPLER, 1 },
 
             // Texture array (binding 1) + G-buffer textures (bindings 2-5)
-            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, static_cast<uint32_t>(numTextures * 2 + 4) }
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, static_cast<uint32_t>(numTextures * 2 + 4) },
+
+            // 4 for G-buffer (bindings 2-5), 1 for tone mapping
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5 }
         };
-        uint32_t maxSets = 1 + maxFramesInFlight;
+        uint32_t maxSets = 1 + maxFramesInFlight + 1;
 
         m_pDescriptorPool = new DescriptorPool(m_pDevice, poolSizes, maxSets); // createDescriptorPool
         createDescriptorSets();
 
-		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pSwapChain); // createGraphicsPipeline, createDepthPrepassPipeline, createGeometryPipeline & createLightingPipeline
+		m_pPipeline = new Pipeline(m_pDevice, m_pGlobalDescriptorSetLayout, m_pUboDescriptorSetLayout, m_pTonemapDescriptorSetLayout, m_pSwapChain); // createDepthPrepassPipeline, createGeometryPipeline, createLightingPipeline, createTonemapPipeline
         m_pCommandBuffer = new CommandBuffer(m_pDevice, m_pCommandPool, m_pSwapChain, m_pPipeline, m_pVertexBuffers, m_pIndexBuffers, m_pSceneManager);
         m_pCommandBuffer->createCommandBuffers(); //createCommandBuffers
         m_pSceneManager->createSyncObjects(); // createSyncObjects
@@ -169,7 +178,7 @@ private:
            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_SPACE, deltaTime);
            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_LEFT_CONTROL, deltaTime);
 
-           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSet, m_pUniformBuffers, m_pCamera, m_pTexture);
+           m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_CameraSettingsBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSet, m_pTonemapDescriptorSet, m_pUniformBuffers, m_pCameraSettingsBuffers, m_pCamera, m_pTexture);
            
 		   //std::cout << m_pCamera->getPosition() << std::endl;
        }
@@ -202,12 +211,23 @@ private:
                 if (m_pUniformBuffers[i]) m_pUniformBuffers[i]->cleanupBuffer();
             }
         }
+        if (!m_pCameraSettingsBuffers.empty()) {
+            for (size_t i = 0; i < m_pCameraSettingsBuffers.size(); ++i) {
+                if (m_pCameraSettingsBuffers[i]) m_pCameraSettingsBuffers[i]->cleanupBuffer();
+            }
+        }
 
         // 4. Descriptor sets, pools, layouts
         if (m_pGlobalDescriptorSet) m_pGlobalDescriptorSet->cleanupDescriptorSet();
-        if (m_pDescriptorPool) m_pDescriptorPool->cleanupDescriptorPool();
         if (m_pGlobalDescriptorSetLayout) m_pGlobalDescriptorSetLayout->cleanupDescriptorSetLayout();
+
+        if (m_pUboDescriptorSet) m_pUboDescriptorSet->cleanupDescriptorSet();
         if (m_pUboDescriptorSetLayout) m_pUboDescriptorSetLayout->cleanupDescriptorSetLayout();
+
+        if (m_pTonemapDescriptorSet) m_pTonemapDescriptorSet->cleanupDescriptorSet();
+        if (m_pTonemapDescriptorSetLayout) m_pTonemapDescriptorSetLayout->cleanupDescriptorSetLayout();
+
+        if (m_pDescriptorPool) m_pDescriptorPool->cleanupDescriptorPool();
 
         // 5. Pipelines
         if (m_pPipeline) m_pPipeline->cleanupPipelines();
@@ -238,12 +258,17 @@ private:
         m_pIndexBuffers.clear();
         for (size_t i = 0; i < m_pUniformBuffers.size(); ++i) { delete m_pUniformBuffers[i]; }
         m_pUniformBuffers.clear();
+        for (size_t i = 0; i < m_pCameraSettingsBuffers.size(); ++i) { delete m_pCameraSettingsBuffers[i]; }
+        m_pCameraSettingsBuffers.clear();
 
         // Descriptor sets
-        delete m_pGlobalDescriptorSet;
         delete m_pDescriptorPool;
+        delete m_pGlobalDescriptorSet;
         delete m_pGlobalDescriptorSetLayout;
+        delete m_pUboDescriptorSet;
         delete m_pUboDescriptorSetLayout;
+        delete m_pTonemapDescriptorSet;
+        delete m_pTonemapDescriptorSetLayout;
 
         // Other objects
         delete m_pSceneManager;
@@ -257,11 +282,6 @@ private:
         delete m_pWindow;
 
         delete m_pCamera;
-    }
-
-    bool hasStencilComponent(VkFormat format) 
-    {
-        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
     void createDescriptorSets()
@@ -294,13 +314,21 @@ private:
             m_pUniformBuffers[0]->getBuffer() // Camera buffer
         );
 
-        // Create Ubo Descriptor Set
+        // Create & Update Ubo Descriptor Set
         m_pUboDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
         m_pUboDescriptorSetLayout->createUboDescriptorSetLayout();
 
         m_pUboDescriptorSet = new DescriptorSet(m_pDevice, m_pTexture, m_pUboDescriptorSetLayout, m_pDescriptorPool, MAX_FRAMES_IN_FLIGHT);
         m_pUboDescriptorSet->createDescriptorSets();
         m_pUboDescriptorSet->updateUboDescriptorSets(m_pUniformBuffers);
+
+		// Create & Update Tonemap Descriptor Set
+        m_pTonemapDescriptorSetLayout = new DescriptorSetLayout(m_pDevice);
+        m_pTonemapDescriptorSetLayout->createToneMappingDescriptorSetLayout();
+
+        m_pTonemapDescriptorSet = new DescriptorSet(m_pDevice, nullptr, m_pTonemapDescriptorSetLayout, m_pDescriptorPool, 1);
+        m_pTonemapDescriptorSet->createDescriptorSets();
+        m_pTonemapDescriptorSet->updateToneMappingDescriptorSet(m_pSwapChain->m_pImage->getHDRImageView(), m_pTexture->getTextureSampler(), m_pCameraSettingsBuffers[0]->getBuffer());
     }
 
     // Function that allocates the buffers
@@ -318,6 +346,29 @@ private:
             // mapping of buffer to get a pointer to which we can write data
             // => persistent mapping
             vkMapMemory(m_pDevice->getDevice(), m_pUniformBuffers[idx]->getBufferMemory(), 0, bufferSize, 0, &m_UniformBuffersMapped[idx]);
+        }
+    }
+
+	// Function that allocates the camera settings buffers
+    void createCameraSettingsBuffers()
+    {
+        VkDeviceSize bufferSize = sizeof(CameraSettingsUBO);
+
+        m_CameraSettingsBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+        for (size_t idx{}; idx < MAX_FRAMES_IN_FLIGHT; idx++)
+        {
+            m_pCameraSettingsBuffers.emplace_back(new Buffer(m_pDevice, m_pCommandPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
+            m_pCameraSettingsBuffers[idx]->createBuffer(
+                bufferSize,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                m_pCameraSettingsBuffers[idx]->getBuffer(),
+                m_pCameraSettingsBuffers[idx]->getBufferMemory(),
+                m_pDevice);
+
+            // Persistent mapping (just like your main UBO)
+            vkMapMemory(m_pDevice->getDevice(), m_pCameraSettingsBuffers[idx]->getBufferMemory(), 0, bufferSize, 0, &m_CameraSettingsBuffersMapped[idx]);
         }
     }
 

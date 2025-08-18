@@ -25,6 +25,8 @@ public:
 	void updateGBufferDescriptorSets(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView);
 	void updateLightingDescriptorSet(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView,
 		VkImageView depthView, VkSampler sampler, VkBuffer cameraBuffer);
+	void updateToneMappingDescriptorSet(VkImageView hdrImageView, VkSampler sampler, VkBuffer cameraSettingsBuffer);
+
 
 private:
 	Device* m_pDevice;

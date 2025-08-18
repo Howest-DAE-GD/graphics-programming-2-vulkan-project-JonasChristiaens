@@ -23,9 +23,9 @@ public:
 	uint32_t getCurrentFrame() const { return m_CurrentFrame; }
 
 	void loadModel();
-	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, 
-		DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Camera* camera, Texture* texture);
-	void recreateDependentResources(DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Texture* texture);
+	void drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, std::vector<void*> cameraSettingsBuffersMapped, CommandBuffer* commandBuffers,
+		DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, DescriptorSet* tonemapDescriptorSet, std::vector<Buffer*>& uniformBuffers, std::vector<Buffer*>& cameraBuffers, Camera* camera, Texture* texture);
+	void recreateDependentResources(DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, DescriptorSet* tonemapDescriptorSet, std::vector<Buffer*>& uniformBuffers, std::vector<Buffer*>& cameraBuffers, Texture* texture);
 	void createSyncObjects();
 
 	void cleanupScene();
@@ -52,4 +52,5 @@ private:
 
 	// private member functions
 	void updateUniformBuffer(uint32_t currentImage, std::vector<void*> uniformBuffersMapped, Camera* camera);
+	void updateCameraSettingsBuffer(uint32_t currentImage, std::vector<void*> cameraBufferMapped, Camera* camera);
 };

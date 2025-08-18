@@ -35,6 +35,19 @@ void Image::cleanup()
         vkFreeMemory(m_pDevice->getDevice(), m_DepthImageMemory, nullptr);
         m_DepthImageMemory = VK_NULL_HANDLE;
     }
+
+    if (m_HDRImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(m_pDevice->getDevice(), m_HDRImageView, nullptr);
+        m_HDRImageView = VK_NULL_HANDLE;
+    }
+    if (m_HDRImage != VK_NULL_HANDLE) {
+        vkDestroyImage(m_pDevice->getDevice(), m_HDRImage, nullptr);
+        m_HDRImage = VK_NULL_HANDLE;
+    }
+    if (m_HDRImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_pDevice->getDevice(), m_HDRImageMemory, nullptr);
+        m_HDRImageMemory = VK_NULL_HANDLE;
+    }
 }
 
 void Image::createColorResources(uint32_t width, uint32_t height, VkSampleCountFlagBits msaaSamples, VkFormat colorFormat)
@@ -54,6 +67,19 @@ void Image::createDepthResources(uint32_t width, uint32_t height)
     
     // transition image layout to depth stencil attachment
     m_DepthImageView = createImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, m_pDevice);
+}
+
+void Image::createHDRResources(uint32_t width, uint32_t height)
+{
+    createImage(width, height, 1, VK_SAMPLE_COUNT_1_BIT,
+        VK_FORMAT_R16G16B16A16_SFLOAT,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        m_HDRImage, m_HDRImageMemory);
+
+    m_HDRImageView = createImageView(m_HDRImage, VK_FORMAT_R16G16B16A16_SFLOAT,
+        VK_IMAGE_ASPECT_COLOR_BIT, 1, m_pDevice);
 }
 
 void Image::createImage(uint32_t texWidth, uint32_t texHeight, uint32_t mipLevels, 

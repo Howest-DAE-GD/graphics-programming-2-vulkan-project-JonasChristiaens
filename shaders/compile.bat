@@ -22,5 +22,6 @@ set SCRIPT_DIR=%~dp0
 %GLSLC% "%SCRIPT_DIR%geometry.frag" -o "%SCRIPT_DIR%geometry_frag.spv"
 %GLSLC% "%SCRIPT_DIR%lighting.frag" -o "%SCRIPT_DIR%lighting_frag.spv"
 %GLSLC% "%SCRIPT_DIR%fullscreen.vert" -o "%SCRIPT_DIR%fullscreen_vert.spv"
+%GLSLC% "%SCRIPT_DIR%tonemap.frag" -o "%SCRIPT_DIR%tonemap_frag.spv"
 
 pause

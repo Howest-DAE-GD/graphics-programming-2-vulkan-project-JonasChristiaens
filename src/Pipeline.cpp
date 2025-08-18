@@ -13,15 +13,17 @@
     struct_type{}; struct_type.sType = s_type_enum;
 
 
-Pipeline::Pipeline(Device* device, DescriptorSetLayout* globalDescriptorSetLayout, DescriptorSetLayout* uboDescriptorSetLayout, SwapChain* swapChain)
+Pipeline::Pipeline(Device* device, DescriptorSetLayout* GlobaldescriptorSetLayout, DescriptorSetLayout* UbodescriptorSetLayout, DescriptorSetLayout* TonemappingdescriptorSetLayout, SwapChain* swapChain)
 	: m_pDevice(device)
-	, m_pGlobalDescriptorSetLayout(globalDescriptorSetLayout)
-    , m_pUboDescriptorSetLayout(uboDescriptorSetLayout)
+	, m_pGlobalDescriptorSetLayout(GlobaldescriptorSetLayout)
+    , m_pUboDescriptorSetLayout(UbodescriptorSetLayout)
+	, m_pTonemappingDescriptorSetLayout(TonemappingdescriptorSetLayout)
 	, m_pSwapChain(swapChain)
 {
 	createDepthPrepassPipeline();
     createGeometryPipeline();
     createLightingPipeline();
+	createToneMappingPipeline();
 }
 
 void Pipeline::cleanupPipelines()
@@ -56,6 +58,15 @@ void Pipeline::cleanupPipelines()
     if (m_LightingPipelineLayout != VK_NULL_HANDLE) {
         vkDestroyPipelineLayout(m_pDevice->getDevice(), m_LightingPipelineLayout, nullptr);
         m_LightingPipelineLayout = VK_NULL_HANDLE;
+    }
+
+    if (m_ToneMappingPipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(m_pDevice->getDevice(), m_ToneMappingPipeline, nullptr);
+        m_ToneMappingPipeline = VK_NULL_HANDLE;
+    }
+    if (m_ToneMappingPipelineLayout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(m_pDevice->getDevice(), m_ToneMappingPipelineLayout, nullptr);
+        m_ToneMappingPipelineLayout = VK_NULL_HANDLE;
     }
 }
 
@@ -491,7 +502,7 @@ void Pipeline::createLightingPipeline()
     }
 
     // Dynamic rendering info for lighting pass
-    VkFormat colorFormat = m_pSwapChain->getImageFormat();
+    VkFormat colorFormat = m_pSwapChain->m_pImage->getHDRFormat();
     VkPipelineRenderingCreateInfo renderingCreateInfo{};
     renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     renderingCreateInfo.colorAttachmentCount = 1;
@@ -522,6 +533,122 @@ void Pipeline::createLightingPipeline()
     if (vkCreateGraphicsPipelines(m_pDevice->getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_LightingPipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create lighting pipeline!");
     }
+
+    vkDestroyShaderModule(m_pDevice->getDevice(), fragShaderModule, nullptr);
+    vkDestroyShaderModule(m_pDevice->getDevice(), vertShaderModule, nullptr);
+}
+
+void Pipeline::createToneMappingPipeline()
+{
+    auto vertShaderCode = readFile("./shaders/fullscreen_vert.spv");
+    auto fragShaderCode = readFile("./shaders/tonemap_frag.spv");
+
+    VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+    // Vertex input (none)
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+    // Input assembly
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    // Viewport/scissor
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount = 1;
+
+    // Rasterizer
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.lineWidth = 1.0f;
+
+    // Multisampling
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    // Depth stencil (none)
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_FALSE;
+    depthStencil.depthWriteEnable = VK_FALSE;
+
+    // Color blending
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_FALSE;
+
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+
+    // Dynamic state
+    std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+    dynamicState.pDynamicStates = dynamicStates.data();
+
+    // Layout
+    VkDescriptorSetLayout setLayouts[] = { m_pTonemappingDescriptorSetLayout->getDescriptorSetLayout() };
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = setLayouts;
+
+    if (vkCreatePipelineLayout(m_pDevice->getDevice(), &pipelineLayoutInfo, nullptr, &m_ToneMappingPipelineLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create tone mapping pipeline layout!");
+    }
+
+    VkFormat colorFormat = m_pSwapChain->getImageFormat();
+    VkPipelineRenderingCreateInfo renderingCreateInfo{};
+    renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingCreateInfo.colorAttachmentCount = 1;
+    renderingCreateInfo.pColorAttachmentFormats = &colorFormat;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
+    pipelineInfo.layout = m_ToneMappingPipelineLayout;
+    pipelineInfo.renderPass = VK_NULL_HANDLE;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.pNext = &renderingCreateInfo;
+
+    if (vkCreateGraphicsPipelines(m_pDevice->getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_ToneMappingPipeline) != VK_SUCCESS)
+        throw std::runtime_error("failed to create tone mapping graphics pipeline!");
 
     vkDestroyShaderModule(m_pDevice->getDevice(), fragShaderModule, nullptr);
     vkDestroyShaderModule(m_pDevice->getDevice(), vertShaderModule, nullptr);

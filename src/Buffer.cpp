@@ -23,8 +23,8 @@ void Buffer::CreateStagingBuffer(VkDeviceSize buffersize, const void* srcData)
 
     // Copy vertex data to the buffer
     void* data;
-    vkMapMemory(m_pDevice->getDevice(), stagingBufferMemory, 0, bufferSize, 0, &data); // This function allows us to access a region of the specified memory resource defined by an offset and size
-    memcpy(data, srcData, (size_t)bufferSize); // You can now simply memcpy the vertex data to the mapped memory and unmap it again using vkUnmapMemory
+    vkMapMemory(m_pDevice->getDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, srcData, (size_t)bufferSize);
     vkUnmapMemory(m_pDevice->getDevice(), stagingBufferMemory);
 
     createBuffer(bufferSize, m_UsageFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_Buffer, m_BufferMemory, m_pDevice);

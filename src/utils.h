@@ -117,6 +117,12 @@ struct GBuffer {
     }
 };
 
+struct CameraSettingsUBO {
+    float aperture;      // f-stop
+    float shutterSpeed;  // seconds
+    float ISO;           // ISO value
+};
+
 namespace std {
     template<> struct hash<Vertex> {
         size_t operator()(Vertex const& vertex) const;

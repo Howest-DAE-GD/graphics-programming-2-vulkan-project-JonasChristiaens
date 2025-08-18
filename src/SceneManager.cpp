@@ -129,8 +129,8 @@ void SceneManager::loadModel()
     }*/
 }
 
-void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, CommandBuffer* commandBuffers, 
-    DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Camera* camera, Texture* texture)
+void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, std::vector<void*> cameraSettingsBuffersMapped, CommandBuffer* commandBuffers,
+    DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, DescriptorSet* tonemapDescriptorSet, std::vector<Buffer*>& uniformBuffers, std::vector<Buffer*>& cameraBuffers, Camera* camera, Texture* texture)
 {
     VkCommandBuffer rawCommandBuffer{ commandBuffers->getCommandBuffers()[m_CurrentFrame] };
     vkWaitForFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
@@ -146,11 +146,12 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     }
 
     updateUniformBuffer(m_CurrentFrame, uniformBuffersMapped, camera);
+	updateCameraSettingsBuffer(m_CurrentFrame, cameraSettingsBuffersMapped, camera);
 
     vkResetFences(m_pDevice->getDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
 
     vkResetCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], 0);
-    commandBuffers->recordDeferredCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, m_Meshes, globalDescriptorSet, uboDescriptorSet);
+    commandBuffers->recordDeferredCommandBuffer(commandBuffers->getCommandBuffers()[m_CurrentFrame], imageIndex, m_Meshes, globalDescriptorSet, uboDescriptorSet, tonemapDescriptorSet);
 
     VkCommandBufferSubmitInfo commandBufferSubmitInfo{};
     commandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -194,7 +195,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window->wasWindowResized()) {
         window->resetWindowResizedFlag();
         m_pSwapChain->recreateSwapChain();
-        recreateDependentResources(globalDescriptorSet, uboDescriptorSet, uniformBuffers, texture);
+        recreateDependentResources(globalDescriptorSet, uboDescriptorSet, tonemapDescriptorSet, uniformBuffers, cameraBuffers, texture);
     }
     else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");
@@ -203,7 +204,7 @@ void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMa
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void SceneManager::recreateDependentResources(DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, std::vector<Buffer*>& uniformBuffers, Texture* texture)
+void SceneManager::recreateDependentResources(DescriptorSet* globalDescriptorSet, DescriptorSet* uboDescriptorSet, DescriptorSet* tonemapDescriptorSet, std::vector<Buffer*>& uniformBuffers, std::vector<Buffer*>& cameraBuffers, Texture* texture)
 {
     vkDeviceWaitIdle(m_pDevice->getDevice());
 
@@ -232,6 +233,10 @@ void SceneManager::recreateDependentResources(DescriptorSet* globalDescriptorSet
 
     // 3. Update UBO descriptor set
 	uboDescriptorSet->updateUboDescriptorSets(uniformBuffers);
+
+	// 4. Update tone mapping descriptor set
+    tonemapDescriptorSet->updateToneMappingDescriptorSet(m_pSwapChain->m_pImage->getHDRImageView(),texture->getTextureSampler(), cameraBuffers[0]->getBuffer()
+    );
 }
 
 void SceneManager::createSyncObjects()
@@ -288,4 +293,14 @@ void SceneManager::updateUniformBuffer(uint32_t currentImage, std::vector<void*>
 
     // Copy data in UBO to current uniform buffer
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+}
+
+void SceneManager::updateCameraSettingsBuffer(uint32_t currentImage, std::vector<void*> cameraBufferMapped, Camera* camera)
+{
+    CameraSettingsUBO camUBO = {};
+    camUBO.aperture = camera->getAperture();
+    camUBO.shutterSpeed = camera->getShutterSpeed();
+    camUBO.ISO = camera->getISO();
+
+    memcpy(cameraBufferMapped[currentImage], &camUBO, sizeof(camUBO));
 }

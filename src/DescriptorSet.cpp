@@ -241,3 +241,41 @@ void DescriptorSet::updateLightingDescriptorSet(VkImageView positionView, VkImag
 
     vkUpdateDescriptorSets(m_pDevice->getDevice(), static_cast<uint32_t>(allWrites.size()), allWrites.data(), 0, nullptr);
 }
+
+void DescriptorSet::updateToneMappingDescriptorSet(VkImageView hdrImageView, VkSampler sampler, VkBuffer cameraSettingsBuffer)
+{
+    VkDescriptorSet dstSet = m_DescriptorSets[0];
+
+    // Binding 0: HDR image
+    VkDescriptorImageInfo imageInfo = {};
+    imageInfo.imageView = hdrImageView;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.sampler = sampler;
+
+    VkWriteDescriptorSet write = {};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = dstSet;
+    write.dstBinding = 0;
+    write.dstArrayElement = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write.descriptorCount = 1;
+    write.pImageInfo = &imageInfo;
+
+    // Binding 1: CameraSettingsUBO
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = cameraSettingsBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(CameraSettingsUBO);
+
+    VkWriteDescriptorSet writeUBO = {};
+    writeUBO.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeUBO.dstSet = dstSet;
+    writeUBO.dstBinding = 1;
+    writeUBO.dstArrayElement = 0;
+    writeUBO.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    writeUBO.descriptorCount = 1;
+    writeUBO.pBufferInfo = &bufferInfo;
+
+    std::array<VkWriteDescriptorSet, 2> writes = { write, writeUBO };
+    vkUpdateDescriptorSets(m_pDevice->getDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+}

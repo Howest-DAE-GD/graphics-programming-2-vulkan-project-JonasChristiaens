@@ -174,7 +174,8 @@ void SwapChain::createResources()
 {
     m_pImage->createColorResources(m_SwapChainExtent.width, m_SwapChainExtent.height, m_pDevice->getMsaaSamples(), m_SwapChainImageFormat);
     m_pImage->createDepthResources(m_SwapChainExtent.width, m_SwapChainExtent.height);
-	
+    m_pImage->createHDRResources(m_SwapChainExtent.width, m_SwapChainExtent.height);
+
     createGBufferResources(m_pCommandPool, m_pDevice);
 }
 
