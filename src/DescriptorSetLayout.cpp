@@ -35,7 +35,7 @@ void DescriptorSetLayout::createGlobalDescriptorSetLayout(uint32_t textureCount,
     }
 
     if (includeCameraUBO) {
-        // Camera UBO (UniformBufferObject), binding 8
+        // Camera UBO (UniformBufferObject)
         bindings.push_back({ 8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr });
     }
 

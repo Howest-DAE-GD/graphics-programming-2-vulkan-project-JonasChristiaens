@@ -12,10 +12,8 @@ public:
 	DescriptorSet(Device* device, Texture* texture, DescriptorSetLayout* descriptorSetLayout, DescriptorPool* descriptorPool, size_t setCount);
 	~DescriptorSet() = default;
 
-	// Return all descriptor sets (for binding per frame)
-	const std::vector<VkDescriptorSet>& getDescriptorSets() const { return m_DescriptorSets; }
-	// Return descriptor set for a particular frame
-	VkDescriptorSet getDescriptorSet(size_t frame) const { return m_DescriptorSets[frame]; }
+	const std::vector<VkDescriptorSet>& getDescriptorSets() const { return m_DescriptorSets; } // Return all descriptor sets (for binding per frame)
+	VkDescriptorSet getDescriptorSet(size_t frame) const { return m_DescriptorSets[frame]; } // Return descriptor set for a particular frame
 
 	void createDescriptorSets();
 	void cleanupDescriptorSet();

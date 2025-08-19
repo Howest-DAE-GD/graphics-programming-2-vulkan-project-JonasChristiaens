@@ -516,7 +516,7 @@ void CommandBuffer::recordLightingPass(VkCommandBuffer commandBuffer, uint32_t i
             0, 1, &globalDescriptorSet->getDescriptorSets()[0],
             0, nullptr);
 
-        // Draw fullscreen quad (3 vertices, no buffers needed)
+        // Draw fullscreen quad
         vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
     vkCmdEndRendering(commandBuffer);

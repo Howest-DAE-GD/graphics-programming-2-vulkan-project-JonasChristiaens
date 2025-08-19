@@ -8,6 +8,7 @@ Image::Image(Device* device)
 	: m_pDevice(device)
 {
 }
+
 void Image::cleanup()
 {
     if (m_ColorImageView != VK_NULL_HANDLE) {

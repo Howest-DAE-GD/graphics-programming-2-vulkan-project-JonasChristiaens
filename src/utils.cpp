@@ -71,7 +71,6 @@ std::array<VkVertexInputAttributeDescription, 2> Vertex::getDepthPrepassAttribut
     attributeDescriptions[1].offset = offsetof(Vertex, texCoord);
 
     return attributeDescriptions;
-
 }
 
 bool Vertex::operator==(const Vertex& other) const {

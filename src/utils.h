@@ -95,7 +95,6 @@ struct GBuffer {
     VkRenderPass renderPass;
 
     void cleanup(VkDevice device) {
-        // Destroy all resources
         for (int i = 0; i < 4; i++) {
             if (views[i] != VK_NULL_HANDLE) {
                 vkDestroyImageView(device, views[i], nullptr);
@@ -118,9 +117,9 @@ struct GBuffer {
 };
 
 struct CameraSettingsUBO {
-    float aperture;      // f-stop
-    float shutterSpeed;  // seconds
-    float ISO;           // ISO value
+    float aperture;
+    float shutterSpeed;
+    float ISO;
 };
 
 namespace std {

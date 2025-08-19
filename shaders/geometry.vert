@@ -26,7 +26,7 @@ void main() {
     fragPosition = worldPos.xyz;
     fragTexCoord = inTexCoord;
     fragAlbedo = vec4(inColor, 1.0);
-    fragMaterial = vec2(0.5, 0.0); // Example roughness/metallic
+    fragMaterial = vec2(0.5, 0.0);
 
     mat3 model3x3 = mat3(ubo.model);
     vec3 T = normalize(model3x3 * inTangent);

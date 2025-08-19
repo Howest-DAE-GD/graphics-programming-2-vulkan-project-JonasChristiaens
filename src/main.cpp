@@ -102,7 +102,7 @@ private:
         m_pSceneManager->loadModel(); // loadModel
 		m_pTexture = new Texture(m_pDevice, m_pSwapChain, m_pCommandPool, m_pSceneManager); // createTextureImage, createTextureImageView, createTextureSampler
 
-        // for each separate mesh, create separate buffers (TODO: change to use single large buffer)
+        // for each separate mesh, create separate buffers
         for (int i{}; i < m_pSceneManager->getMeshes().size(); i++) {
 
             // createVertexBuffer
@@ -151,8 +151,8 @@ private:
 	   // Create camera with initial position and orientation
        float aspectRatio = static_cast<float>(WIDTH) / HEIGHT;
        glm::vec3 camPos = glm::vec3(0.0f, 1.5f, 0.0f);
-       float yaw = 0.0f;   // Looking down +Z
-       float pitch = 0.0f; // Level
+       float yaw = 0.0f;
+       float pitch = 0.0f;
 
        m_pCamera = new Camera(camPos, yaw, pitch, 90.0f, aspectRatio, 0.1f, 100.0f);
 
@@ -179,8 +179,6 @@ private:
            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) m_pCamera->processKeyboard(GLFW_KEY_LEFT_CONTROL, deltaTime);
 
            m_pSceneManager->drawFrame(m_pWindow, m_UniformBuffersMapped, m_CameraSettingsBuffersMapped, m_pCommandBuffer, m_pGlobalDescriptorSet, m_pUboDescriptorSet, m_pTonemapDescriptorSet, m_pUniformBuffers, m_pCameraSettingsBuffers, m_pCamera, m_pTexture);
-           
-		   //std::cout << m_pCamera->getPosition() << std::endl;
        }
 
        vkDeviceWaitIdle(m_pDevice->getDevice());
@@ -367,7 +365,7 @@ private:
                 m_pCameraSettingsBuffers[idx]->getBufferMemory(),
                 m_pDevice);
 
-            // Persistent mapping (just like your main UBO)
+            // Persistent mapping
             vkMapMemory(m_pDevice->getDevice(), m_pCameraSettingsBuffers[idx]->getBufferMemory(), 0, bufferSize, 0, &m_CameraSettingsBuffersMapped[idx]);
         }
     }

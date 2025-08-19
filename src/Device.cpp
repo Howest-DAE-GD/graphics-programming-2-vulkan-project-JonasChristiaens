@@ -34,8 +34,6 @@ void Device::pickPhysicalDevice()
 
             VkPhysicalDeviceProperties props;
             vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
-            //std::cout << "Selected GPU: " << props.deviceName << std::endl;
-
             break;
         }
     }
@@ -91,7 +89,7 @@ void Device::createLogicalDevice()
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-    createInfo.pEnabledFeatures = nullptr; // Required when using VkPhysicalDeviceFeatures2
+    createInfo.pEnabledFeatures = nullptr;
     createInfo.pNext = &deviceFeatures2;
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
@@ -112,7 +110,6 @@ void Device::createLogicalDevice()
     vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
     vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
 }
-
 
 VkSampleCountFlagBits Device::getMaxUsableSampleCount()
 {

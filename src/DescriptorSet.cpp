@@ -49,7 +49,7 @@ void DescriptorSet::cleanupDescriptorSet()
 
 void DescriptorSet::updateGlobalDescriptorSets(uint32_t textureCount)
 {
-    // Only one global set, so always use index 0
+    // Only one global set
     VkDescriptorSet dstSet = m_DescriptorSets[0];
 
     // Binding 0: Sampler
@@ -148,7 +148,7 @@ void DescriptorSet::updateUboDescriptorSets(const std::vector<Buffer*>& uniformB
 
 void DescriptorSet::updateGBufferDescriptorSets(VkImageView positionView, VkImageView normalView, VkImageView albedoView, VkImageView materialView)
 {
-    // Only one global set, so always use index 0
+    // Only one global set
     VkDescriptorSet dstSet = m_DescriptorSets[0];
 
     // Validation check

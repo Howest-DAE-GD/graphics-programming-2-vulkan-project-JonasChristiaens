@@ -100,7 +100,6 @@ void main() {
     // light intensities
     float intensities[4] = float[](300.0, 100.0, 200.0, 500.0);
 
-    // You can use KelvinToRgb for color, or hard-code specific RGB colors!
     vec3 lightColors[4] = vec3[](
         KelvinToRgb(2000.0),
         KelvinToRgb(4000.0),             

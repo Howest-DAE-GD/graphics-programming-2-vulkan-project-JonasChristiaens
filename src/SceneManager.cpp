@@ -110,7 +110,7 @@ void SceneManager::loadModel()
             m_normalPaths[newMesh.materialIndex] = (basePath / texPath.C_Str()).string();
         }
 
-        // Metallic-Roughness Map (glTF standard: aiTextureType_UNKNOWN)
+        // Metallic-Roughness Map
         if (material->GetTexture(aiTextureType_UNKNOWN, 0, &texPath) == AI_SUCCESS) {
             m_metallicRoughnessPaths[newMesh.materialIndex] = (basePath / texPath.C_Str()).string();
         }
@@ -118,7 +118,7 @@ void SceneManager::loadModel()
         m_Meshes.push_back(newMesh);
     }
 
-    /*std::cout << "Loaded " << m_Meshes.size() << " meshes from " << MODEL_PATH << std::endl;
+    std::cout << "Loaded " << m_Meshes.size() << " meshes from " << MODEL_PATH << std::endl;
 
     // Debug: print found texture paths per material
     for (size_t i = 0; i < numMaterials; ++i) {
@@ -126,7 +126,7 @@ void SceneManager::loadModel()
         std::cout << "  Albedo: " << m_albedoPaths[i] << "\n";
         std::cout << "  Normal: " << m_normalPaths[i] << "\n";
         std::cout << "  MetallicRoughness: " << m_metallicRoughnessPaths[i] << "\n";
-    }*/
+    }
 }
 
 void SceneManager::drawFrame(Window* window, std::vector<void*> uniformBuffersMapped, std::vector<void*> cameraSettingsBuffersMapped, CommandBuffer* commandBuffers,

@@ -19,5 +19,5 @@ layout(location = 1) out uint fragTextureIndex;
 void main() {
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
     fragTexCoord = inTexCoord;
-    fragTextureIndex = pushConstants.textureIndex; // or pass as a varying if needed
+    fragTextureIndex = pushConstants.textureIndex;
 }

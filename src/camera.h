@@ -31,7 +31,7 @@ private:
     float m_Near;
     float m_Far;
 
-    float m_MoveSpeed = 5.0f;    // units per second
+    float m_MoveSpeed = 5.0f;
     float m_MouseSensitivity = 0.1f;
     float m_Aperture = 1.0f;
     float m_ShutterSpeed = 1.0f / 10.0f;
