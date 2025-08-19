@@ -44,7 +44,7 @@ The project is organized with clear separation between device management, swapch
 
 - `src/` – Core engine source code
 - `shaders/` – GLSL shaders for each pipeline stage
-- `assets/` – Models and textures
+- `models/` – Models and textures
 - `README.md` – Project overview
 
 ## Special Techniques
